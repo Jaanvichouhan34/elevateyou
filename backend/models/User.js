@@ -5,8 +5,10 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  level: { type: String, default: 'Basic', enum: ['Basic', 'Intermediate', 'Professional'] },
+  level: { type: String, default: 'Starter' },
   streak: { type: Number, default: 0 },
+  xp: { type: Number, default: 0 },
+  nextLevelXp: { type: Number, default: 1000 },
   lastLogin: { type: Date, default: Date.now },
   badges: [{ type: String }],
   createdAt: { type: Date, default: Date.now }

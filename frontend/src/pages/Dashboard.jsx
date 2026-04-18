@@ -18,16 +18,16 @@ const Dashboard = () => {
   const [history, setHistory] = useState([]);
   const [quizHistory, setQuizHistory] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState({ name: '', level: '' });
+  const [editData, setEditData] = useState({ name: '', level: 'Professional' });
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState('overview'); // overview, history, settings
+  const [historyFilter, setHistoryFilter] = useState('ALL');
 
   const fetchData = async () => {
     setLoading(true);
     const userId = localStorage.getItem('userId') || 'demo_user';
     const token = localStorage.getItem('token');
     
-    // Initialize empty values so the UI doesn't crash if the server returns missing data
     const defaultUser = {
       name: localStorage.getItem('userName') || "User",
       email: "",
@@ -61,7 +61,6 @@ const Dashboard = () => {
       setQuizHistory(progressRes.data?.quizHistory || []);
     } catch (err) {
       console.error(err);
-      // Fallback empty data if server error, no demo data
       setUser(defaultUser);
       setStats({ scans: 0, quizzes: 0 });
       setHistory([]);
@@ -94,11 +93,11 @@ const Dashboard = () => {
     }
   };
 
-  if (loading) return (
+  if (loading || !user) return (
     <div className="h-[80vh] flex flex-col items-center justify-center space-y-4">
-       <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin shadow-2xl"></div>
-       <p className="text-xs font-black uppercase tracking-[0.3em] text-indigo-500 animate-pulse">Syncing Dashboard...</p>
-    </div>
+        <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin shadow-2xl"></div>
+        <p className="text-xs font-black uppercase tracking-[0.3em] text-indigo-500 animate-pulse">Syncing Dashboard...</p>
+     </div>
   );
 
   return (
@@ -239,7 +238,7 @@ const Dashboard = () => {
                                <p className="text-xs font-black truncate">{item.event} Analysis</p>
                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{new Date(item.date).toLocaleDateString()}</p>
                             </div>
-                            <div className="text-sm font-black text-indigo-600">8.2</div>
+                            <div className="text-sm font-black text-indigo-600">{item.aiResponse?.score || 8.2}</div>
                          </div>
                        ))}
                        <button onClick={() => setActiveView('history')} className="w-full py-4 glass text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border-slate-100 dark:border-slate-800">
@@ -262,26 +261,36 @@ const Dashboard = () => {
               <div className="flex items-center justify-between mb-16">
                  <h2 className="text-4xl font-black italic tracking-tighter">Usage <span className="text-indigo-600">Chronology</span></h2>
                  <div className="flex space-x-2">
-                    <button className="px-6 py-2 bg-indigo-600 text-white text-xs font-black rounded-full shadow-lg">ALL</button>
-                    <button className="px-6 py-2 glass text-xs font-black rounded-full">SCANS</button>
-                    <button className="px-6 py-2 glass text-xs font-black rounded-full">QUIZZES</button>
+                    <button onClick={() => setHistoryFilter('ALL')} className={`px-6 py-2 text-xs font-black rounded-full transition-all ${historyFilter === 'ALL' ? 'bg-indigo-600 text-white shadow-lg' : 'glass'}`}>ALL</button>
+                    <button onClick={() => setHistoryFilter('SCANS')} className={`px-6 py-2 text-xs font-black rounded-full transition-all ${historyFilter === 'SCANS' ? 'bg-indigo-600 text-white shadow-lg' : 'glass'}`}>SCANS</button>
+                    <button onClick={() => setHistoryFilter('QUIZZES')} className={`px-6 py-2 text-xs font-black rounded-full transition-all ${historyFilter === 'QUIZZES' ? 'bg-indigo-600 text-white shadow-lg' : 'glass'}`}>QUIZZES</button>
                  </div>
               </div>
 
               <div className="space-y-6">
-                 {history.map((scan, i) => (
-                    <div key={scan._id} className="group flex flex-col md:flex-row md:items-center justify-between p-8 glass hover:bg-white dark:hover:bg-slate-900 border-slate-100 dark:border-slate-800 rounded-[2.5rem] transition-all hover:shadow-2xl">
+                 {[...history.map(s => ({ ...s, type: 'scan' })), ...quizHistory.map(q => ({ ...q, type: 'quiz' }))]
+                    .filter(item => {
+                       if (historyFilter === 'ALL') return true;
+                       if (historyFilter === 'SCANS') return item.type === 'scan';
+                       if (historyFilter === 'QUIZZES') return item.type === 'quiz';
+                       return true;
+                    })
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))
+                    .map((item, i) => (
+                    <div key={item._id} className="group flex flex-col md:flex-row md:items-center justify-between p-8 glass hover:bg-white dark:hover:bg-slate-900 border-slate-100 dark:border-slate-800 rounded-[2.5rem] transition-all hover:shadow-2xl">
                        <div className="flex items-center space-x-8">
-                          <div className={`w-16 h-16 rounded-3xl flex items-center justify-center font-black text-xs shrink-0 group-hover:rotate-6 transition-transform ${
-                             scan.inputType === 'image' ? 'bg-indigo-100 text-indigo-600' : 'bg-cyan-100 text-cyan-600'
+                          <div className={`w-16 h-16 rounded-3xl flex items-center justify-center font-black text-[10px] shrink-0 group-hover:rotate-6 transition-transform ${
+                             item.type === 'quiz' ? 'bg-purple-100 text-purple-600' : (item.inputType === 'image' ? 'bg-indigo-100 text-indigo-600' : 'bg-cyan-100 text-cyan-600')
                           }`}>
-                             {scan.inputType === 'image' ? 'VISION' : 'TEXT'}
+                             {item.type === 'quiz' ? 'QUIZ' : (item.inputType === 'image' ? 'VISION' : 'TEXT')}
                           </div>
                           <div>
-                             <h4 className="text-xl font-black tracking-tight">{scan.event} Prep</h4>
+                             <h4 className="text-xl font-black tracking-tight">{item.topic || item.event} {item.type === 'quiz' ? 'Mastery' : 'Prep'}</h4>
                              <div className="flex items-center space-x-3 mt-2">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full">{new Date(scan.date).toDateString()}</span>
-                                <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${scan.aiResponse.score > 7 ? 'text-green-500 bg-green-500/10' : 'text-amber-500 bg-amber-500/10'}`}>Success Rating: {scan.aiResponse.score}/10</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full">{new Date(item.date).toDateString()}</span>
+                                <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${((item.type === 'scan' ? item.aiResponse?.score : item.score / 10) || 0) > 7 ? 'text-green-500 bg-green-500/10' : 'text-amber-500 bg-amber-500/10'}`}>
+                                   {item.type === 'scan' ? `Success Rating: ${item.aiResponse?.score || 0}/10` : `Training Score: ${item.score}/100`}
+                                </span>
                              </div>
                           </div>
                        </div>
@@ -291,6 +300,13 @@ const Dashboard = () => {
                        </button>
                     </div>
                  ))}
+                 
+                 {(history.length === 0 && quizHistory.length === 0) && (
+                    <div className="text-center py-20 p-12 glass rounded-[3rem] border-dashed border-2 border-slate-200 dark:border-slate-800">
+                       <p className="text-indigo-600 font-black italic text-lg capitalize mb-2">No activity recorded yet</p>
+                       <p className="text-slate-400 text-xs uppercase tracking-widest font-bold">Start an AI session to populate your feed!</p>
+                    </div>
+                 )}
               </div>
            </motion.div>
          )}
@@ -325,7 +341,7 @@ const Dashboard = () => {
                  {isEditing && (
                     <div className="flex gap-4 pt-10">
                        <button onClick={handleUpdate} className="flex-1 py-5 bg-indigo-600 text-white rounded-[2rem] font-black text-sm tracking-widest shadow-xl shadow-indigo-500/20 hover:bg-indigo-700 transition-all flex items-center justify-center space-x-3">
-                          <Save size={18} />
+                          <ArrowUpRight size={18} />
                           <span>SAVE CHANGES</span>
                        </button>
                        <button onClick={() => setIsEditing(false)} className="flex-1 py-5 glass border-slate-100 dark:border-slate-800 rounded-[2rem] font-black text-sm tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center space-x-3">

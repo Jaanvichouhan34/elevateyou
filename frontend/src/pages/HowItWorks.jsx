@@ -1,29 +1,33 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Camera, Sparkles, Target, Zap, ArrowRight, UserCheck, ShieldCheck } from 'lucide-react';
+import { Sparkles, Target, ArrowRight, UserCheck, ShieldCheck, TrendingUp, Bot } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const HowItWorks = () => {
   const steps = [
     {
-      icon: <Camera size={32} className="text-cyan-500" />,
-      title: "1. Capture or Describe",
-      description: "Upload a photo of your planned outfit or simply describe it in text. The AI processes visual data or text equally well to understand your style intent."
+      icon: <UserCheck size={32} className="text-cyan-500" />,
+      title: "1. Create Account",
+      description: "Sign up in under 30 seconds to start building your profile and tracking your progress.",
+      image: "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=500"
     },
     {
       icon: <Target size={32} className="text-violet-500" />,
-      title: "2. Select Your Event",
-      description: "Choose from over 24 highly-specific event profiles (from Salary Negotiation to First Date). This provides the vital context our AI needs to judge appropriateness."
+      title: "2. Choose Your Module",
+      description: "Select from Outfit Scanner, Event Preparation, or AI Trainer based on your current need.",
+      image: "https://images.unsplash.com/photo-1551434678-e076c223a692?w=500"
     },
     {
-      icon: <Zap size={32} className="text-pink-500" />,
-      title: "3. AI Processing",
-      description: "Our core intelligence engine instantly cross-references your inputs against modern style rules, psychology of color, and specific event etiquette."
+      icon: <Bot size={32} className="text-pink-500" />,
+      title: "3. Get AI Feedback",
+      description: "Receive instant, tailored advice on your styling, communication, or event readiness.",
+      image: "https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=500"
     },
     {
-      icon: <Sparkles size={32} className="text-indigo-500" />,
-      title: "4. Receive Actionable Feedback",
-      description: "You'll get an immediate Style Rating out of 10, alongside a detailed breakdown of what works, what to avoid, and last-minute grooming tips."
+      icon: <TrendingUp size={32} className="text-indigo-500" />,
+      title: "4. Track Progress",
+      description: "Monitor your stats, review your history, and watch your skills improve over time.",
+      image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=500"
     }
   ];
 
@@ -48,25 +52,50 @@ const HowItWorks = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
-        {steps.map((step, index) => (
-          <motion.div 
-            key={index}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.15 }}
-            className="glass p-10 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-2xl hover:-translate-y-2 transition-transform group relative overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-bl-[100px] transition-all group-hover:scale-150 group-hover:bg-indigo-500/10 pointer-events-none" />
-            <div className="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center mb-8 shadow-inner group-hover:scale-110 transition-transform">
-              {step.icon}
+      <div className="max-w-5xl mx-auto space-y-24 relative z-10 w-full">
+        {steps.map((step, index) => {
+          const isEven = index % 2 === 1;
+          return (
+            <div key={index} className="relative flex flex-col md:flex-row items-center gap-12 group">
+              {/* Connector Arrow */}
+              {index < steps.length - 1 && (
+                <div className={`hidden md:block absolute -bottom-20 ${isEven ? 'left-[25%]' : 'right-[25%]'} w-24 h-24 text-violet-500 opacity-40 z-0`}>
+                  <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-lg">
+                    <path d={isEven ? "M80 0 C 80 50, 20 50, 20 100" : "M20 0 C 20 50, 80 50, 80 100"} stroke="currentColor" strokeWidth="3" strokeDasharray="6 6" fill="transparent" strokeLinecap="round" />
+                    <circle cx={isEven ? "20" : "80"} cy="100" r="4" fill="currentColor" />
+                  </svg>
+                </div>
+              )}
+
+              <motion.div 
+                initial={{ opacity: 0, x: isEven ? 50 : -50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                className={`flex-[1.2] glass p-10 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-2xl relative z-10 ${isEven ? 'md:order-2' : 'md:order-1'}`}
+              >
+                <div className="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center mb-8 shadow-inner group-hover:scale-110 transition-transform">
+                  {step.icon}
+                </div>
+                <h3 className="text-3xl font-black italic mb-4">{step.title}</h3>
+                <p className="text-lg text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                  {step.description}
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                className={`flex-[0.8] relative z-10 w-full ${isEven ? 'md:order-1' : 'md:order-2'}`}
+              >
+                <div className="p-3 glass rounded-[2.5rem] transform group-hover:scale-105 group-hover:rotate-1 transition-all duration-500 shadow-2xl border border-indigo-500/10">
+                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-violet-500/20 rounded-[2.5rem] mix-blend-overlay pointer-events-none" />
+                  <img src={step.image} alt={step.title} className="w-full h-auto aspect-[4/3] object-cover rounded-[2rem] shadow-inner" />
+                </div>
+              </motion.div>
             </div>
-            <h3 className="text-xl font-black italic mb-4">{step.title}</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-              {step.description}
-            </p>
-          </motion.div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-32 max-w-4xl mx-auto glass p-12 md:p-16 rounded-[4rem] border border-indigo-500/10 shadow-2xl relative overflow-hidden">

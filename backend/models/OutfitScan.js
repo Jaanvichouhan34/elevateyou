@@ -7,8 +7,9 @@ const outfitScanSchema = new mongoose.Schema({
   imageUrl: { type: String },
   outfitDescription: { type: String },
   aiResponse: {
-    appropriate: [String],
-    notSuitable: [String],
+    summary: { type: String },
+    strengths: [String],
+    risks: [String],
     improvements: [String],
     groomingTips: [String],
     score: { type: Number, min: 0, max: 10 }

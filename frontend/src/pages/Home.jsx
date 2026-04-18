@@ -3,9 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Shirt, BookOpen, MessageSquare, ArrowRight, Star, TrendingUp, Users, Rocket, CheckCircle, Zap, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import InfiniteTypewriter from '../components/InfiniteTypewriter';
+import heroVisual from '../assets/hero-visual.png';
+import { useInView } from 'react-intersection-observer';
 
 const Home = () => {
   const [activeTestimonial, setActiveTestimonial] = useState(0);
+  const { ref: statsRef, inView: statsInView } = useInView({
+    triggerOnce: true,
+    threshold: 0.1
+  });
 
   const features = [
     {
@@ -73,7 +79,7 @@ const Home = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
-    }, 5000);
+    }, 4000); // 4 second rotation
 
     // Handle hash scrolling
     if (window.location.hash === '#testimonials') {
@@ -100,69 +106,117 @@ const Home = () => {
   };
 
   return (
-    <div className="relative overflow-hidden min-h-screen">
+    <div className="relative overflow-hidden min-h-screen dark:bg-slate-950 transition-colors duration-500">
       {/* Background decoration orbs */}
-      <div className="orb w-[500px] h-[500px] bg-indigo-500/20 top-[-250px] left-[-100px]" />
-      <div className="orb w-[400px] h-[400px] bg-cyan-500/20 bottom-[-100px] right-[-100px]" />
+      <div className="orb w-[500px] h-[500px] bg-indigo-500/20 dark:bg-violet-600/20 top-[-250px] left-[-100px] transition-colors duration-500" />
+      <div className="orb w-[400px] h-[400px] bg-cyan-500/20 dark:bg-cyan-500/20 bottom-[-100px] right-[-100px] transition-colors duration-500" />
+      <div className="orb w-[600px] h-[600px] bg-transparent dark:bg-pink-500/10 top-[20%] left-[30%] -translate-x-1/2 transition-colors duration-500 pointer-events-none" />
 
       {/* Hero Section */}
-      <section className="pt-24 pb-20 px-4 max-w-7xl mx-auto flex flex-col items-center text-center">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="mb-8 p-1 px-4 glass rounded-full flex items-center space-x-2 border-indigo-500/10 shadow-xl shadow-indigo-500/5 font-bold"
-        >
-          <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-          <span className="text-[10px] uppercase tracking-[0.3em] text-indigo-500">Elevate your game with AI</span>
-        </motion.div>
+      <section className="min-h-screen flex items-center pt-20 pb-10 px-4">
+        <div className="max-w-7xl mx-auto w-full">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
+            
+            {/* LEFT COLUMN */}
+            <div className="lg:w-1/2 flex flex-col items-center lg:items-start text-center lg:text-left">
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                className="mb-8 p-1 px-4 glass rounded-full flex items-center space-x-2 border-indigo-500/10 shadow-xl shadow-indigo-500/5 font-bold"
+              >
+                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                <span className="text-[10px] uppercase tracking-[0.3em] text-indigo-500">Elevate your game with AI</span>
+              </motion.div>
 
-        <h1 className="text-6xl md:text-8xl font-black mb-10 tracking-tighter leading-[0.9] text-slate-900 dark:text-white">
-          <span className="block italic mb-4">Master Your Presence</span>
-          <span className="text-indigo-600 dark:text-cyan-400">
-            <InfiniteTypewriter
-              phrases={[
-                "Build Your Best Self",
-                "Master Your Style",
-                "Ace Every Interview",
-                "Boost Your Confidence"
-              ]}
-              speed={80}
-              pause={2500}
-            />
-          </span>
-        </h1>
+              <h1 className="text-6xl md:text-8xl font-black mb-10 tracking-tighter leading-[0.9] text-slate-900 dark:text-white">
+                <span className="block italic mb-4">Master Your Presence</span>
+                <span className="text-indigo-600 dark:text-cyan-400">
+                  <InfiniteTypewriter
+                    phrases={[
+                      "Build Your Best Self",
+                      "Master Your Style",
+                      "Ace Every Interview",
+                      "Boost Your Confidence"
+                    ]}
+                    speed={80}
+                    pause={2500}
+                  />
+                </span>
+              </h1>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5, duration: 1 }}
-          className="max-w-2xl text-lg text-slate-500 dark:text-slate-300 mb-12 leading-relaxed font-medium"
-        >
-          The all-in-one AI platform for students and professionals to refine their style, communication, and confidence for every critical life event.
-        </motion.p>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5, duration: 1 }}
+                className="max-w-2xl text-lg text-slate-500 dark:text-slate-300 mb-12 leading-relaxed font-medium"
+              >
+                The all-in-one AI platform for students and professionals to refine their style, communication, and confidence for every critical life event.
+              </motion.p>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="flex flex-wrap justify-center gap-6"
-        >
-          <Link to="/register">
-            <button className="px-12 py-5 bg-indigo-600 text-white rounded-[2rem] font-black tracking-widest text-sm shadow-2xl shadow-indigo-500/30 hover:bg-indigo-700 hover:scale-105 transition-all flex items-center group relative overflow-hidden">
-              <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-              <Rocket size={18} className="mr-3 group-hover:rotate-12 transition-transform" />
-              <span>Get Started Now</span>
-            </button>
-          </Link>
-          <Link to="/about">
-            <button className="px-12 py-5 glass rounded-[2rem] font-black tracking-widest text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-all hover:scale-105 active:scale-95">
-              Explore Platform
-            </button>
-          </Link>
-        </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                className="flex flex-wrap justify-center lg:justify-start gap-6"
+              >
+                <Link to="/register">
+                  <button className="px-12 py-5 bg-indigo-600 text-white rounded-[2rem] font-black tracking-widest text-sm shadow-2xl shadow-indigo-500/30 hover:bg-indigo-700 hover:scale-105 transition-all flex items-center group relative overflow-hidden">
+                    <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                    <Rocket size={18} className="mr-3 group-hover:rotate-12 transition-transform" />
+                    <span>Get Started Now</span>
+                  </button>
+                </Link>
+                <Link to="/about">
+                  <button className="px-12 py-5 glass rounded-[2rem] font-black tracking-widest text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-all hover:scale-105 active:scale-95">
+                    Explore Platform
+                  </button>
+                </Link>
+              </motion.div>
 
-        {/* Feature Cards */}
+              {/* Stats Row */}
+              <motion.div
+                ref={statsRef}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1 }}
+                className="flex items-center flex-wrap justify-center lg:justify-start gap-4 mt-12 text-sm font-black uppercase tracking-widest text-slate-500 dark:text-slate-400"
+              >
+                <div>
+                  {statsInView ? <AnimatedCounter end={5000} duration={2.5} separator={true} /> : '0'}+ Students
+                </div>
+                <div className="w-[2px] h-4 bg-slate-300 dark:bg-slate-700 hidden sm:block" />
+                <div>
+                  {statsInView ? <AnimatedCounter end={98} duration={2.5} /> : '0'}% Satisfaction
+                </div>
+                <div className="w-[2px] h-4 bg-slate-300 dark:bg-slate-700 hidden sm:block" />
+                <div>
+                  {statsInView ? <AnimatedCounter end={3} duration={2.5} /> : '0'} AI Modules
+                </div>
+                <div className="w-[2px] h-4 bg-slate-300 dark:bg-slate-700 hidden sm:block" />
+                <div>
+                  {statsInView ? <AnimatedCounter end={20} duration={2.5} /> : '0'} Skill Levels
+                </div>
+              </motion.div>
+            </div>
+
+            {/* RIGHT COLUMN */}
+            <motion.div
+              initial={{ opacity: 0, x: 60 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+              className="lg:w-1/2 mt-16 lg:mt-0 relative flex justify-center items-center w-full"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-400/20 to-purple-400/20 rounded-full blur-3xl scale-75" />
+              <img 
+                src={heroVisual} 
+                alt="ElevateU AI visual" 
+                className="relative z-10 w-full max-w-lg lg:max-w-xl drop-shadow-2xl hover:scale-105 transition-transform duration-700 ease-out mix-blend-multiply dark:mix-blend-normal" 
+              />
+            </motion.div>
+          </div>
+
+          {/* Feature Cards */}
         <div className="mt-32 w-full perspective-1000">
           <motion.div
             variants={containerVariants}
@@ -188,6 +242,7 @@ const Home = () => {
               </motion.div>
             ))}
           </motion.div>
+        </div>
         </div>
       </section>
 
@@ -240,14 +295,14 @@ const Home = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section id="testimonials" className="py-32 px-4 relative">
+      <section id="testimonials" className="py-32 px-4 relative bg-gradient-to-br from-violet-50 to-cyan-50 dark:from-slate-900 dark:to-slate-800">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-24">
             <h2 className="text-5xl font-black tracking-tighter mb-6 italic text-slate-900 dark:text-white">Success Stories</h2>
             <p className="text-slate-500 dark:text-slate-300 font-medium">Join 5,000+ students building their best selves with AI.</p>
           </div>
 
-          <div className="relative h-[450px] overflow-hidden group/carousel">
+          <div className="relative h-[460px] overflow-hidden group/carousel">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTestimonial}
@@ -256,8 +311,12 @@ const Home = () => {
                 exit={{ opacity: 0, scale: 1.05, y: -30 }}
                 transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
                 whileHover={{ scale: 1.02 }}
-                className="absolute inset-0 flex flex-col items-center justify-center text-center max-w-3xl mx-auto px-10 cursor-pointer py-12 rounded-[4rem] bg-white/5 dark:bg-slate-900/50 backdrop-blur-xl border border-indigo-500/10 hover:border-indigo-500/30 hover:shadow-[0_20px_50px_rgba(79,70,229,0.1)] transition-all duration-500 active:shadow-[0_0_30px_rgba(79,70,229,0.4)] active:scale-[0.98]"
+                className="absolute inset-0 flex flex-col items-center justify-center text-center max-w-3xl mx-auto px-10 cursor-pointer py-12 rounded-[4rem] bg-white dark:bg-slate-800 shadow-2xl shadow-violet-200/50 dark:shadow-violet-900/30 border border-violet-100 dark:border-slate-700 hover:shadow-violet-300/60 dark:hover:shadow-violet-900/50 transition-all duration-500 relative overflow-hidden"
+                style={{ borderTop: '3px solid transparent', backgroundClip: 'padding-box' }}
               >
+                {/* Top gradient accent line */}
+                <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-violet-500 to-cyan-500 rounded-t-[4rem]" />
+
                 <div className="flex space-x-1.5 mb-10">
                   {[...Array(testimonials[activeTestimonial].stars)].map((_, i) => (
                     <motion.div
@@ -274,12 +333,12 @@ const Home = () => {
                   "{testimonials[activeTestimonial].text}"
                 </p>
                 <div className="flex items-center space-x-5">
-                  <div className="w-16 h-16 rounded-[1.5rem] bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-black text-2xl shadow-xl shadow-indigo-500/30 rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                  <div className="w-16 h-16 rounded-[1.5rem] bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white font-black text-2xl shadow-xl shadow-violet-500/30 rotate-3 group-hover/carousel:rotate-0 transition-transform duration-500">
                     {testimonials[activeTestimonial].name[0]}
                   </div>
                   <div className="text-left">
                     <h4 className="font-black text-xl leading-none text-slate-900 dark:text-white">{testimonials[activeTestimonial].name}</h4>
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-500 mt-2 bg-indigo-500/5 px-2 py-1 rounded-md inline-block">{testimonials[activeTestimonial].role}</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-violet-600 dark:text-violet-400 mt-2 bg-violet-500/10 px-2 py-1 rounded-md inline-block">{testimonials[activeTestimonial].role}</p>
                   </div>
                 </div>
               </motion.div>
@@ -287,12 +346,15 @@ const Home = () => {
           </div>
 
           {/* Carousel Indicators */}
-          <div className="flex justify-center space-x-3 mt-12">
+          <div className="flex justify-center items-center space-x-3 mt-12">
             {testimonials.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setActiveTestimonial(i)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${activeTestimonial === i ? 'w-8 bg-indigo-600' : 'w-2 bg-slate-200 dark:bg-slate-800'}`}
+                className={`rounded-full transition-all duration-300 ${activeTestimonial === i
+                  ? 'w-8 h-3 bg-violet-600'
+                  : 'w-3 h-3 bg-transparent border-2 border-slate-400 dark:border-slate-600 hover:border-violet-400'
+                }`}
               />
             ))}
           </div>
@@ -317,5 +379,28 @@ const BenefitItem = ({ icon, title, desc }) => (
 const Target = ({ className, size }) => (
   <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
 );
+
+const AnimatedCounter = ({ end, duration = 2.5, separator = false }) => {
+  const nodeRef = React.useRef();
+
+  useEffect(() => {
+    const node = nodeRef.current;
+    if (node) {
+      import('framer-motion').then(({ animate }) => {
+        const controls = animate(0, end, {
+          duration,
+          onUpdate(value) {
+            node.textContent = separator 
+              ? Math.round(value).toLocaleString() 
+              : Math.round(value);
+          }
+        });
+        return () => controls.stop();
+      });
+    }
+  }, [end, duration, separator]);
+
+  return <span ref={nodeRef}>0</span>;
+};
 
 export default Home;

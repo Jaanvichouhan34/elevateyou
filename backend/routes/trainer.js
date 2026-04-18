@@ -1,62 +1,134 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const OpenAI = require('openai');
-const User = require('../models/User');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const QuizResult = require('../models/QuizResult');
-const ChatSession = require('../models/ChatSession');
 const auth = require('../middleware/auth');
+const { saveData, readData } = require('../utils/storage');
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+const chatFallbacks = {
+  'Interview Simulation': [
+    "Great answer! For a stronger response, try using the STAR method — Situation, Task, Action, Result. This gives your answers clear structure. Now, tell me about a time you faced a challenge at work or college and how you handled it.",
+    "Good start! Interviewers love specific examples. Can you quantify that result? For instance, 'I improved team efficiency by 30%' is much stronger than 'I improved efficiency'. Try again with a number.",
+    "Solid response. One tip — always end your answer by connecting back to the role you are applying for. Why does that experience make you the right fit? Let us try another question: What is your greatest professional strength?",
+    "Excellent structure! Now let us try a tricky one: Where do you see yourself in 5 years? Remember — align your answer with the company's growth, not just personal goals.",
+    "Good confidence in that answer. For technical interviews, always think out loud — interviewers want to see your thought process, not just the final answer. What area of your skills are you currently improving?"
+  ],
+  'Grammar Correction': [
+    "✏️ ANALYSIS: Your sentence has been reviewed.\n\n✅ CORRECTED VERSION: Please share your sentence and I will identify any grammar errors, explain what was wrong, and provide a professional rewrite.\n\n💡 TIP: Common errors include subject-verb agreement, incorrect tense usage, and missing articles (a, an, the).",
+    "✏️ GRAMMAR TIP: Remember that 'I' is always capitalized. Contractions like don't, can't, and won't need apostrophes. Please type your sentence and I will correct it fully.",
+    "✏️ QUICK RULE: In professional writing, avoid starting sentences with 'But' or 'And'. Use 'However' or 'Additionally' instead. Share your text for a full correction."
+  ],
+  'Rephrasing': [
+    "🔄 ORIGINAL: Please share the text you want rephrased.\n\n✨ PROFESSIONAL VERSION: I will transform it into formal, email-appropriate language.\n\n📊 FORMAL VERSION: I will also provide a presentation-ready version.\n\nPaste your text and I will rephrase it in multiple professional styles.",
+    "🔄 REPHRASING TIP: Replace 'I think' with 'I believe' or 'In my assessment'. Replace 'a lot' with 'significantly'. Replace 'get' with 'obtain' or 'receive'. Share your sentence for a complete professional rewrite.",
+    "🔄 EXAMPLE: Casual: 'Can you check this?' → Professional: 'Could you kindly review this at your earliest convenience?' Share your text for a similar transformation."
+  ],
+  'Presentation Rehearsal': [
+    "📊 FEEDBACK: Strong opening! For maximum impact, start with a bold statistic, a surprising fact, or a powerful question. This grabs attention in the first 10 seconds. Try opening with: 'Did you know that...' or 'Imagine if...'",
+    "📊 DELIVERY TIP: Speak at 130-150 words per minute — slow enough to be understood, fast enough to keep energy. Record yourself and count. Most nervous speakers rush to 180+ words per minute. What section of your presentation do you want to rehearse?",
+    "📊 STRUCTURE CHECK: Every strong presentation has 3 parts — Hook (why should I listen?), Body (what do I need to know?), Call to Action (what should I do next?). Share your opening line and I will give you specific feedback."
+  ],
+  'Casual Talk': [
+    "That is a really interesting point! I would love to hear more about your perspective on this. What experiences have shaped your view on that topic?",
+    "Great conversation starter! One tip for natural conversations — ask open-ended questions that cannot be answered with just yes or no. This keeps the dialogue flowing. What do you enjoy talking about most?",
+    "You are doing great with your communication! Remember, confident conversation is about being genuinely curious about the other person. What topics are you most comfortable discussing?"
+  ]
+};
+
+// Helper: extract JSON from possibly markdown-wrapped response
+function extractJSON(text) {
+  try {
+    const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (match) return JSON.parse(match[1].trim());
+    return JSON.parse(text.trim());
+  } catch (e) {
+    console.error('JSON Extraction Error:', e);
+    throw new Error('Failed to parse AI response as JSON');
+  }
+}
 
 // POST /api/trainer/quiz/generate
 router.post('/quiz/generate', auth, async (req, res) => {
   const { topic, level } = req.body;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: `Generate a 10-question multiple-choice quiz for a ${level} level on the topic of ${topic}. 
-          Each question must have: text, options (array of 4 strings), and correctAnswer (index 0-3). 
-          Provide JSON format with a "questions" field.`
-        },
-      ],
-      response_format: { type: "json_object" }
-    });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const prompt = `Generate a 10-question multiple-choice quiz for a ${level} level on the topic of ${topic}. 
+Each question must have: text, options (array of 4 strings), and correctAnswer (index 0-3). 
+Provide JSON format with a "questions" field. Return only the JSON.`;
 
-    res.status(200).json(JSON.parse(response.choices[0].message.content));
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    res.status(200).json(extractJSON(response.text()));
   } catch (error) {
-    res.status(500).json({ message: 'Error generating quiz', error: error.message });
+    console.error('Quiz generation error:', error);
+    res.status(500).json({ 
+      message: 'Quiz generation failed: ' + error.message,
+      error: error.message 
+    });
   }
 });
 
 // POST /api/trainer/quiz/submit
 router.post('/quiz/submit', auth, async (req, res) => {
   const { topic, level, score, weakAreas, suggestions } = req.body;
+  const User = require('../models/User');
 
   try {
-    if (mongoose.connection.readyState !== 1) {
-      console.log('Demo Mode: Quiz Result Not Saved');
-      return res.status(201).json({ _id: 'demo-' + Date.now(), topic, level, score });
+    let savedResult = null;
+
+    if (mongoose.connection.readyState === 1) {
+      try {
+        // Save the quiz result
+        const newResult = new QuizResult({
+          userId: req.userData.userId,
+          topic,
+          level,
+          score,
+          weakAreas,
+          suggestions
+        });
+        savedResult = await newResult.save();
+
+        // Reward XP and handle leveling
+        const user = await User.findById(req.userData.userId);
+        if (user) {
+          const xpGain = score * 10;
+          user.xp += xpGain;
+
+          const levels = ['Starter', 'Intermediate', 'Advanced', 'Professional', 'Master'];
+          if (user.xp >= user.nextLevelXp) {
+            let currentIdx = levels.indexOf(user.level);
+            if (currentIdx < levels.length - 1) {
+              user.level = levels[currentIdx + 1];
+              user.nextLevelXp = user.nextLevelXp * 1.5;
+            }
+          }
+          await user.save();
+        }
+      } catch (e) {
+        console.error('DB Submit error, falling back to JSON:', e);
+      }
     }
 
-    const newResult = new QuizResult({
-      userId: req.userData.userId,
-      topic,
-      level,
-      score,
-      weakAreas,
-      suggestions
-    });
-    await newResult.save();
+    if (!savedResult) {
+      savedResult = saveData('quiz_results', {
+        userId: req.userData.userId,
+        topic,
+        level,
+        score,
+        weakAreas,
+        suggestions
+      });
+    }
 
-    // Update user level if score is high? (logic can be added here)
-    res.status(201).json(newResult);
+    res.status(201).json(savedResult);
   } catch (error) {
-    res.status(201).json({ message: 'Demo Mode: Mock Submission' });
+    console.error('Submit error:', error);
+    res.status(500).json({ message: 'Error saving result' });
   }
 });
 
@@ -64,44 +136,65 @@ router.post('/quiz/submit', auth, async (req, res) => {
 router.post('/chat', auth, async (req, res) => {
   const { message, mode, history } = req.body;
 
+  const systemPrompts = {
+    'Interview Simulation': `You are a strict but helpful interviewer conducting a professional job interview. Ask one interview question at a time based on the user's responses. Give brief, specific feedback on their answer quality (1-2 sentences), then ask your next question. Vary your questions across: behavioral (STAR method), technical, situational, and competency-based. Be professional, encouraging but direct. Never ask about multiple things at once.`,
+    'Grammar Correction': `You are an expert English grammar teacher. When the user sends a sentence or paragraph: 1) Identify specific grammar errors (be precise about what's wrong) 2) Show the corrected version 3) Explain WHY it was wrong in simple terms 4) Provide a more professional/formal version. Format your response clearly.`,
+    'Rephrasing': `You are a professional business communication expert. Rephrase the user's casual/informal text into a professional email version and a formal presentation version.`,
+    'Presentation Rehearsal': `You are an expert presentation coach. Give specific, actionable feedback on the user's presentation content or delivery description.`,
+    'Casual Talk': `You are a friendly, engaging conversation partner helping someone practice natural English conversation.`
+  };
+
   try {
-    const systemPrompts = {
-      'Interview Simulation': "You are an expert interviewer. Conduct a professional interview. Provide feedback on user's responses.",
-      'Presentation Rehearsal': "You are a presentation coach. Help the user refine their presentation script and delivery.",
-      'Casual Talk': "Engage in a friendly, natural conversation to improve user's social skills.",
-      'Grammar Correction': "Focus on identifying and explaining grammar mistakes in user's messages.",
-      'Rephrasing': "Provide professional and polished alternatives for user's sentences."
-    };
-
-    const messages = [
-      { role: "system", content: systemPrompts[mode] || "Help the user improve their communication skills." },
-      ...history,
-      { role: "user", content: message }
-    ];
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-1.5-flash',
+      systemInstruction: systemPrompts[mode] || systemPrompts['Casual Talk']
     });
 
-    const aiMessage = response.choices[0].message.content;
+    const chat = model.startChat({
+      history: Array.isArray(history) 
+        ? history.slice(-10).map(m => ({
+            role: m.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: m.content }]
+          }))
+        : []
+    });
 
-    // Save to session (optional logic here)
-    res.status(200).json({ response: aiMessage });
+    const result = await chat.sendMessage(message);
+    const response = await result.response;
+    res.status(200).json({ response: response.text() });
   } catch (error) {
-    res.status(500).json({ message: 'Error in chat', error: error.message });
+    console.error('Chat error:', error.message);
+    const fallbackMode = req.body.mode || 'Interview Simulation';
+    const responses = chatFallbacks[fallbackMode] || chatFallbacks['Interview Simulation'];
+    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+    return res.status(200).json({ 
+      response: randomResponse, 
+      isFallback: true 
+    });
   }
 });
 
 // GET /api/trainer/progress/:userId
 router.get('/progress/:userId', auth, async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(200).json({ quizCount: 0, quizHistory: [] });
+    let quizHistory = [];
+    
+    if (mongoose.connection.readyState === 1) {
+      try {
+        quizHistory = await QuizResult.find({ userId: req.params.userId }).sort({ date: 1 });
+      } catch (e) {
+        console.error('DB Fetch error, falling back to JSON:', e);
+      }
     }
-    const quizCount = await QuizResult.countDocuments({ userId: req.params.userId });
-    const quizHistory = await QuizResult.find({ userId: req.params.userId }).sort({ date: 1 });
-    res.status(200).json({ quizCount, quizHistory });
+
+    // Combine with local data
+    const localHistory = readData('quiz_results').filter(q => q.userId === req.params.userId);
+    const combined = [...quizHistory, ...localHistory].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    res.status(200).json({ 
+      quizCount: combined.length, 
+      quizHistory: combined 
+    });
   } catch (error) {
     res.status(200).json({ quizCount: 0, quizHistory: [] });
   }

@@ -2,7 +2,13 @@ const jwt = require('jsonwebtoken');
 
 module.exports = (req, res, next) => {
   try {
-    const token = req.headers.authorization.split(' ')[1];
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      console.warn('Auth Middleware: Missing Authorization header');
+      return res.status(401).json({ message: 'Authentication failed: No token provided' });
+    }
+
+    const token = authHeader.split(' ')[1];
     
     // Support demo-token for no-db fallback
     if (token === 'demo-token') {
@@ -14,6 +20,7 @@ module.exports = (req, res, next) => {
     req.userData = { userId: decodedToken.userId, name: decodedToken.name };
     next();
   } catch (error) {
-    res.status(401).json({ message: 'Authentication failed!' });
+    console.error('Auth Middleware Error:', error.message);
+    res.status(401).json({ message: 'Authentication failed: ' + error.message });
   }
 };

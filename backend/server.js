@@ -14,8 +14,19 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: function (origin, callback) {
+    console.log('Incoming request from origin:', origin);
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1') || origin === 'https://elevate-u-rose.vercel.app') {
+      return callback(null, true);
+    }
+    callback(new Error(`Not allowed by CORS: ${origin}`));
+  },
+  credentials: true
+}));
+app.use(express.json({ limit: '10mb' })); // Increase for base64 image payloads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
