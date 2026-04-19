@@ -6,14 +6,14 @@ import { useEffect, useRef } from 'react';
 
 const HeroDarkIllustration = () => {
   return (
-    <div className="relative w-full max-w-[540px] h-[520px] flex items-center justify-center">
+    <div className="relative w-full max-w-[620px] h-[600px] flex items-center justify-center">
 
       {/* ── Animated SVG Illustration ── */}
       <svg
         viewBox="0 0 540 520"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-full"
+        className="w-full h-full scale-[1.15] transform-origin-center"
       >
         <defs>
           {/* Gradients */}

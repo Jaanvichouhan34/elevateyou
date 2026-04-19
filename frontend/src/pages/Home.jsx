@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Shirt, BookOpen, MessageSquare, ArrowRight, Star, TrendingUp, Users, Rocket, CheckCircle, Zap, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import InfiniteTypewriter from '../components/InfiniteTypewriter';
-import heroVisual from '../assets/hero-visual.png';
 import HeroDarkIllustration from '../components/HeroDarkIllustration';
+import HeroLightIllustration from '../components/HeroLightIllustration';
 import { useInView } from 'react-intersection-observer';
 import { useTheme } from '../context/ThemeContext';
 
@@ -209,16 +209,12 @@ const Home = () => {
               initial={{ opacity: 0, x: 60 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.3 }}
-              className="lg:w-1/2 mt-16 lg:mt-0 flex justify-center items-center relative w-full"
+              className="lg:w-1/2 mt-16 lg:mt-0 flex justify-center items-center lg:justify-end relative w-full"
             >
               {isDark ? (
                 <HeroDarkIllustration />
               ) : (
-                <img
-                  src={heroVisual}
-                  alt="ElevateU AI Platform"
-                  className="w-full max-w-[520px] object-contain mix-blend-multiply hover:scale-105 transition-transform duration-700 ease-out drop-shadow-2xl"
-                />
+                <HeroLightIllustration />
               )}
             </motion.div>
           </div>
