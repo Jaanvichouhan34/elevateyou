@@ -4,9 +4,13 @@ import { Shirt, BookOpen, MessageSquare, ArrowRight, Star, TrendingUp, Users, Ro
 import { Link } from 'react-router-dom';
 import InfiniteTypewriter from '../components/InfiniteTypewriter';
 import heroVisual from '../assets/hero-visual.png';
+import heroVisualDark from '../assets/hero-visual-dark.png';
 import { useInView } from 'react-intersection-observer';
+import { useTheme } from '../context/ThemeContext';
 
 const Home = () => {
+  const { isDarkMode } = useTheme();
+  const isDark = isDarkMode;
   const [activeTestimonial, setActiveTestimonial] = useState(0);
   const { ref: statsRef, inView: statsInView } = useInView({
     triggerOnce: true,
@@ -209,9 +213,9 @@ const Home = () => {
             >
               <div className="absolute inset-0 bg-gradient-to-br from-indigo-400/20 to-purple-400/20 rounded-full blur-3xl scale-75" />
               <img 
-                src={heroVisual} 
+                src={isDark ? heroVisualDark : heroVisual} 
                 alt="ElevateU AI visual" 
-                className="relative z-10 w-full max-w-lg lg:max-w-xl drop-shadow-2xl hover:scale-105 transition-transform duration-700 ease-out mix-blend-multiply dark:mix-blend-normal" 
+                className={`relative z-10 w-full max-w-lg lg:max-w-xl drop-shadow-2xl hover:scale-105 transition-all duration-700 ease-out ${isDark ? 'mix-blend-normal' : 'mix-blend-multiply'}`} 
               />
             </motion.div>
           </div>
