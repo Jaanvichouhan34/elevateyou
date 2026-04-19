@@ -4,7 +4,7 @@ import { Shirt, BookOpen, MessageSquare, ArrowRight, Star, TrendingUp, Users, Ro
 import { Link } from 'react-router-dom';
 import InfiniteTypewriter from '../components/InfiniteTypewriter';
 import heroVisual from '../assets/hero-visual.png';
-import heroVisualDark from '../assets/hero-visual-dark.png';
+import HeroDarkIllustration from '../components/HeroDarkIllustration';
 import { useInView } from 'react-intersection-observer';
 import { useTheme } from '../context/ThemeContext';
 
@@ -110,7 +110,7 @@ const Home = () => {
   };
 
   return (
-    <div className="relative overflow-hidden min-h-screen dark:bg-slate-950 transition-colors duration-500">
+    <div className="relative overflow-hidden min-h-screen transition-colors duration-500">
       {/* Background decoration orbs */}
       <div className="orb w-[500px] h-[500px] bg-indigo-500/20 dark:bg-violet-600/20 top-[-250px] left-[-100px] transition-colors duration-500" />
       <div className="orb w-[400px] h-[400px] bg-cyan-500/20 dark:bg-cyan-500/20 bottom-[-100px] right-[-100px] transition-colors duration-500" />
@@ -204,19 +204,22 @@ const Home = () => {
               </motion.div>
             </div>
 
-            {/* RIGHT COLUMN */}
+            {/* RIGHT — Hero Visual */}
             <motion.div
               initial={{ opacity: 0, x: 60 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.3 }}
-              className="lg:w-1/2 mt-16 lg:mt-0 relative flex justify-center items-center w-full"
+              className="lg:w-1/2 mt-16 lg:mt-0 flex justify-center items-center relative w-full"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-400/20 to-purple-400/20 rounded-full blur-3xl scale-75" />
-              <img 
-                src={isDark ? heroVisualDark : heroVisual} 
-                alt="ElevateU AI visual" 
-                className={`relative z-10 w-full max-w-lg lg:max-w-xl drop-shadow-2xl hover:scale-105 transition-all duration-700 ease-out ${isDark ? 'mix-blend-normal' : 'mix-blend-multiply'}`} 
-              />
+              {isDark ? (
+                <HeroDarkIllustration />
+              ) : (
+                <img
+                  src={heroVisual}
+                  alt="ElevateU AI Platform"
+                  className="w-full max-w-[520px] object-contain mix-blend-multiply hover:scale-105 transition-transform duration-700 ease-out drop-shadow-2xl"
+                />
+              )}
             </motion.div>
           </div>
 

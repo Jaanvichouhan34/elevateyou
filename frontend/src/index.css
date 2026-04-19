@@ -17,22 +17,19 @@
    ============================================= */
 
 @keyframes gradient-light {
-  0%   { background-color: #dbeafe; } /* light blue */
-  25%  { background-color: #fce7f3; } /* pink */
-  50%  { background-color: #d1fae5; } /* green */
-  75%  { background-color: #ede9fe; } /* lavender */
-  100% { background-color: #dbeafe; } /* back to light blue */
+  0%   { background-color: #e8eeff; }
+  25%  { background-color: #f0e8ff; }
+  50%  { background-color: #e8fff8; }
+  75%  { background-color: #fff8e8; }
+  100% { background-color: #e8eeff; }
 }
 
 @keyframes gradient-dark {
-  0%   { background-color: #0f172a; } /* dark navy */
-  14%  { background-color: #1a1a2e; } /* cool black-blue */
-  28%  { background-color: #2d1b4e; } /* plum */
-  42%  { background-color: #0c1222; } /* midnight */
-  56%  { background-color: #1e1b4b; } /* deep indigo */
-  70%  { background-color: #0f1729; } /* electric blue-black */
-  84%  { background-color: #1c1917; } /* warm charcoal */
-  100% { background-color: #0f172a; } /* back to dark navy */
+  0%   { background-color: #0a0a1a; }
+  25%  { background-color: #0d0a1f; }
+  50%  { background-color: #0a1a1a; }
+  75%  { background-color: #1a0a0f; }
+  100% { background-color: #0a0a1a; }
 }
 
 @keyframes mesh-gradient {
@@ -91,13 +88,13 @@
     background-color: var(--bg-main);
     color: var(--text-main);
     font-family: var(--font-body);
-    animation: gradient-light 20s ease infinite;
+    animation: gradient-light 8s ease-in-out infinite;
     transition: color 0.5s ease;
     overflow-x: hidden;
   }
 
   .dark body {
-    animation: gradient-dark 25s ease infinite;
+    animation: gradient-dark 8s ease-in-out infinite;
   }
 
   /* Force dark text/bg across ALL elements */
