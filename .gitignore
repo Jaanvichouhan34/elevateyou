@@ -30,3 +30,6 @@ frontend/build
 *.sw?
 .DS_Store
 Thumbs.db
+
+# Data
+backend/data/
