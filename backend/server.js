@@ -43,9 +43,9 @@ app.use((err, req, res, next) => {
 });
 
 // Database Connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('Database connection error:', err));
+// mongoose.connect(process.env.MONGO_URI)
+//   .then(() => console.log('Connected to MongoDB'))
+//   .catch(err => console.error('Database connection error:', err));
 
 // Start Server independently
 app.listen(PORT, () => {

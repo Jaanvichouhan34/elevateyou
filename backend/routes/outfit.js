@@ -1,12 +1,10 @@
+const { generateAIResponse } = require("../utils/aiService");
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const auth = require('../middleware/auth');
 const OutfitScan = require('../models/OutfitScan');
 const { saveData, readData } = require('../utils/storage');
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const outfitFallbacks = {
   Interview: {
@@ -62,12 +60,13 @@ const outfitFallbacks = {
 // Helper: extract JSON from possibly markdown-wrapped response
 function extractJSON(text) {
   try {
-    const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (match) return JSON.parse(match[1].trim());
-    return JSON.parse(text.trim());
+    const jsonStart = text.indexOf('{');
+    const jsonEnd = text.lastIndexOf('}');
+    const jsonString = text.substring(jsonStart, jsonEnd + 1);
+    return JSON.parse(jsonString);
   } catch (e) {
-    console.error('JSON Extraction Error:', e);
-    throw new Error('Failed to parse AI response as JSON');
+    console.error('❌ JSON parse failed:', text);
+    throw new Error('Invalid JSON from AI');
   }
 }
 
@@ -75,63 +74,70 @@ function extractJSON(text) {
 // Body: { event: string, imageBase64: string (data URI) }
 router.post('/scan-image', auth, async (req, res) => {
   const { event, imageBase64 } = req.body;
-  
+
   if (!imageBase64 || !event) {
     return res.status(400).json({ message: 'Image and event are required.' });
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    // Prepare image for Gemini
-    const base64Data = imageBase64.split(',')[1];
-    const mimeType = imageBase64.split(',')[0].split(':')[1].split(';')[0];
+    const prompt = `
+You are a fashion AI expert.
 
-    const prompt = `You are a professional fashion and style consultant. Analyze this outfit image for a ${event} event. 
-Return a JSON object with EXACTLY these keys:
+The user uploaded an outfit image for: ${event}.
+
+Analyze the outfit visually and return ONLY valid JSON:
+
 {
-  "score": <number 1-10, be realistic and varied based on actual suitability>,
-  "summary": "<2 sentence visual analysis specific to what you actually see>",
-  "strengths": ["<3-4 specific observations about THIS actual outfit>"],
-  "improvements": ["<3 specific actionable improvements for THIS outfit>"],
-  "risks": ["<2-3 specific risks or concerns about THIS outfit for this event>"],
-  "groomingTips": ["<3 grooming tips relevant to this look>"]
+  "score": number (1-10),
+  "summary": "",
+  "strengths": [],
+  "improvements": [],
+  "risks": [],
+  "groomingTips": []
 }
-Be specific to what you actually see. Never give generic advice. For a ${event}, scoring should reflect how suitable the outfit truly is. Return only the JSON.`;
+`;
 
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: base64Data,
-          mimeType: mimeType
-        }
-      }
-    ]);
+    const aiResponse = await generateAIResponse(prompt);
 
-    const response = await result.response;
-    const aiResData = extractJSON(response.text());
+    // extract JSON safely
+    const jsonStart = aiResponse.indexOf("{");
+    const jsonEnd = aiResponse.lastIndexOf("}");
 
-    // Save to Database / Local Fallback
+    if (jsonStart === -1 || jsonEnd === -1) {
+      throw new Error("Invalid AI response");
+    }
+let aiResData;
+
+try {
+
+
+  aiResData = JSON.parse(
+    aiResponse.substring(jsonStart, jsonEnd + 1)
+  );
+} catch (err) {
+  console.error("AI JSON parse failed:", err);
+  return res.status(500).json({
+  success: false,
+  message: "AI response parsing failed"
+});
+}
+
+    // Save to DB
     let savedScan = null;
+
     if (mongoose.connection.readyState === 1) {
       try {
         const newScan = new OutfitScan({
           userId: req.userData.userId,
           event,
           inputType: 'image',
-          aiResponse: {
-            summary: aiResData.summary,
-            strengths: aiResData.strengths,
-            risks: aiResData.risks,
-            improvements: aiResData.improvements,
-            groomingTips: aiResData.groomingTips,
-            score: aiResData.score
-          }
+          aiResponse: aiResData
         });
+
         savedScan = await newScan.save();
       } catch (e) {
-        console.error('DB Save error, falling back to JSON:', e);
+        console.error('DB Save error:', e);
       }
     }
 
@@ -144,14 +150,19 @@ Be specific to what you actually see. Never give generic advice. For a ${event},
       });
     }
 
-    return res.status(200).json(savedScan);
+    return res.status(200).json({
+  success: true,
+  data: savedScan
+});
+
   } catch (error) {
     console.error('Scan image error:', error);
-    const eventFallback = req.body.event || 'Interview';
-    const fallback = outfitFallbacks[eventFallback] || outfitFallbacks['Interview'];
-    return res.status(200).json({ 
-      ...fallback, 
-      isFallback: true 
+
+    const fallback = outfitFallbacks[event] || outfitFallbacks["Interview"];
+
+    return res.status(200).json({
+      ...fallback,
+      isFallback: true
     });
   }
 });
@@ -160,74 +171,68 @@ Be specific to what you actually see. Never give generic advice. For a ${event},
 // Body: { event: string, outfitDescription: string }
 router.post('/scan-text', auth, async (req, res) => {
   const { event, outfitDescription } = req.body;
+
   if (!outfitDescription || !event) {
     return res.status(400).json({ message: 'Outfit description and event are required.' });
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const prompt = `
+You are a professional style consultant.
 
-    const prompt = `You are a professional style consultant. The user described their outfit as: "${outfitDescription}" for a ${event} event.
-Analyze the description and return a JSON object with EXACTLY these keys:
+Event: ${event}
+Outfit: ${outfitDescription}
+
+Return ONLY valid JSON:
 {
-  "score": <number 1-10 based on how suitable this specific outfit is for a ${event}>,
-  "summary": "<2 sentences referencing the specific items they described>",
-  "strengths": ["<3-4 points specific to the described items>"],
-  "improvements": ["<3 specific suggestions for the described outfit>"],
-  "risks": ["<2-3 specific concerns about this outfit for this event>"],
-  "groomingTips": ["<3 relevant grooming tips>"]
+  "score": number (1-10),
+  "summary": "2 lines",
+  "strengths": ["..."],
+  "improvements": ["..."],
+  "risks": ["..."],
+  "groomingTips": ["..."]
 }
-Reference the actual items mentioned. Never be generic. Score strictly for ${event} suitability. Return only the JSON.`;
+`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const aiResData = extractJSON(response.text());
+    const aiResponse = await generateAIResponse(prompt);
+    console.log("🔍 RAW AI RESPONSE:", aiResponse);
 
-    // Save to Database / Local Fallback
-    let savedScan = null;
-    if (mongoose.connection.readyState === 1) {
-      try {
-        const newScan = new OutfitScan({
-          userId: req.userData.userId,
-          event,
-          inputType: 'text',
-          outfitDescription,
-          aiResponse: {
-            summary: aiResData.summary,
-            strengths: aiResData.strengths,
-            risks: aiResData.risks,
-            improvements: aiResData.improvements,
-            groomingTips: aiResData.groomingTips,
-            score: aiResData.score
-          }
-        });
-        savedScan = await newScan.save();
-      } catch (e) {
-        console.error('DB Save error, falling back to JSON:', e);
-      }
-    }
 
-    if (!savedScan) {
-      savedScan = saveData('outfit_scans', {
-        userId: req.userData.userId,
-        event,
-        inputType: 'text',
-        outfitDescription,
-        aiResponse: aiResData
-      });
-    }
+let aiResData;
 
-    return res.status(200).json(savedScan);
+try {
+  const jsonStart = aiResponse.indexOf("{");
+  const jsonEnd = aiResponse.lastIndexOf("}");
+
+  if (jsonStart === -1 || jsonEnd === -1) {
+    throw new Error("No JSON found");
+  }
+
+  aiResData = JSON.parse(
+    aiResponse.substring(jsonStart, jsonEnd + 1)
+  );
+} catch (err) {
+  console.error("AI JSON parse failed:", err);
+  throw new Error("Invalid AI response format");
+}
+
+    return res.status(200).json({
+  success: true,
+  data: aiResData
+});
+
   } catch (error) {
-    console.error('Scan text error:', error);
-    const eventFallback = req.body.event || 'Interview';
-    const fallback = outfitFallbacks[eventFallback] || outfitFallbacks['Interview'];
-    return res.status(200).json({ 
-      ...fallback, 
-      isFallback: true 
+    console.error(error);
+
+    const fallback = outfitFallbacks[event] || outfitFallbacks["Interview"];
+
+    return res.status(200).json({
+      ...fallback,
+      isFallback: true
     });
   }
 });
+
 
 // GET /api/outfit/history/:userId
 router.get('/history/:userId', auth, async (req, res) => {
@@ -235,7 +240,6 @@ router.get('/history/:userId', auth, async (req, res) => {
     let history = [];
     if (mongoose.connection.readyState === 1) {
       try {
-        const OutfitScan = require('../models/OutfitScan');
         history = await OutfitScan.find({ userId: req.params.userId }).sort({ date: -1 }).limit(10);
       } catch (e) {
         console.error('DB Fetch error, falling back to JSON:', e);
@@ -251,5 +255,7 @@ router.get('/history/:userId', auth, async (req, res) => {
     res.status(200).json([]);
   }
 });
+
+
 
 module.exports = router;
