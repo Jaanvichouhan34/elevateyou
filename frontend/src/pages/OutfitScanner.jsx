@@ -101,14 +101,7 @@ const OutfitScanner = () => {
   };
 
   const handleScan = async () => {
-<<<<<<< HEAD
     if ((mode === 'upload' || mode === 'camera') && !imagePreview) return;
-=======
-
-      console.log("TOKEN FROM CONTEXT:", token);  
-
-    if (mode === 'image' && !imagePreview) return;
->>>>>>> 0dc75e8b94d02ef89511cd047e8740ea75930b9b
     if (mode === 'text' && !description.trim()) return;
 
     setLoading(true);
@@ -121,35 +114,19 @@ const OutfitScanner = () => {
         response = await fetch(`${API_BASE_URL}/api/outfit/scan-image`, {
           method: 'POST',
           headers: {
-<<<<<<< HEAD
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token || 'demo-token'}`
           },
-=======
-  'Content-Type': 'application/json',
-  'Authorization': token ? `Bearer ${token}` : 'Bearer demo-token'
-},
->>>>>>> 0dc75e8b94d02ef89511cd047e8740ea75930b9b
           body: JSON.stringify({ event: selectedEvent, imageBase64: imagePreview })
         });
       } else {
         response = await fetch(`${API_BASE_URL}/api/outfit/scan-text`,  {
           method: 'POST',
           headers: {
-<<<<<<< HEAD
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token || 'demo-token'}`
           },
           body: JSON.stringify({ event: selectedEvent, outfitDescription: description })
-=======
-  'Content-Type': 'application/json',
-  'Authorization': token ? `Bearer ${token}` : 'Bearer demo-token'
-},
-          body: JSON.stringify({ 
-            event: selectedEvent, 
-            outfitDescription: description
-          })
->>>>>>> 0dc75e8b94d02ef89511cd047e8740ea75930b9b
         });
       }
 
