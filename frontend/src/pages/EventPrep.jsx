@@ -421,6 +421,19 @@ const EventPrep = () => {
                                     </li>
                                   ))}
                                 </ul>
+                              ) : typeof value === 'object' && value !== null ? (
+                                <div className="space-y-4 pt-1">
+                                  {Object.entries(value).map(([subKey, subValue], sIdx) => (
+                                    <div key={sIdx} className="space-y-1">
+                                      <p className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider">
+                                        {subKey}
+                                      </p>
+                                      <p className="text-sm font-bold text-slate-700 dark:text-slate-200 leading-relaxed">
+                                        {typeof subValue === 'object' ? JSON.stringify(subValue) : subValue}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
                               ) : (
                                 <p className="text-sm font-bold text-slate-700 dark:text-slate-200 leading-relaxed">{value}</p>
                               )}
