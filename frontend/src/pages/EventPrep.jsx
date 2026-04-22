@@ -3,10 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shirt, MessageSquare, User, Info, CheckCircle2, BookOpen,
   Sparkles, Target, Zap, Clock, AlertTriangle, Lightbulb,
-  ChevronRight, Star
+  ChevronRight, Star, RefreshCw, Bot
 } from 'lucide-react';
 import { eventPrepData } from '../data/eventPrepData';
 import { prepData } from '../data/prepData';
+import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../api/config';
+import axios from 'axios';
 
 const RICH_EVENTS = Object.keys(eventPrepData);
 
@@ -71,9 +74,56 @@ const proTips = {
 };
 
 const EventPrep = () => {
+  const { token } = useAuth();
   const [selectedEvent, setSelectedEvent] = useState('Interview');
   const [activeTab, setActiveTab] = useState('outfit');
   const [showAll, setShowAll] = useState(false);
+  const [aiData, setAiData] = useState({}); // { [eventId_tabId]: data }
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchAIGuide = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/event/guide`, {
+        eventType: selectedEvent,
+        guideType: activeTab
+      }, {
+        headers: { Authorization: `Bearer ${token || 'demo-token'}` }
+      });
+      
+      setAiData(prev => ({
+        ...prev,
+        [`${selectedEvent}_${activeTab}`]: response.data
+      }));
+    } catch (err) {
+      if (err.response && err.response.status === 401) {
+        // Retry with demo token
+        try {
+          const retryRes = await axios.post(`${API_BASE_URL}/api/event/guide`, {
+            eventType: selectedEvent,
+            guideType: activeTab
+          }, {
+            headers: { Authorization: 'Bearer demo-token' }
+          });
+          setAiData(prev => ({
+            ...prev,
+            [`${selectedEvent}_${activeTab}`]: retryRes.data
+          }));
+          return;
+        } catch (retryErr) {
+          console.error('Retry failed:', retryErr);
+        }
+      }
+      console.error('AI Guide fetch error:', err);
+      setError('AI failed to generate custom guide. Using standard prep data.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const currentAIData = aiData[`${selectedEvent}_${activeTab}`];
 
   const isRichEvent = RICH_EVENTS.includes(selectedEvent);
   const richData = isRichEvent ? eventPrepData[selectedEvent] : null;
@@ -327,21 +377,76 @@ const EventPrep = () => {
               ))}
             </div>
 
-            <div className="p-10 md:p-14">
-              <AnimatePresence mode="wait">
-                {isRichEvent ? (
-                  <motion.div key={selectedEvent + activeTab + 'rich'}
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                    {renderRichTab()}
-                  </motion.div>
-                ) : (
-                  <motion.div key={selectedEvent + activeTab + 'legacy'}
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                    {renderLegacyTab()}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+              <div className="p-10 md:p-14">
+                <div className="flex justify-between items-center mb-8">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Current Focus</p>
+                    <h4 className="text-xl font-black italic">{tabs.find(t => t.id === activeTab)?.label} Prep</h4>
+                  </div>
+                  <button 
+                    onClick={fetchAIGuide}
+                    disabled={loading}
+                    className="px-6 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50"
+                  >
+                    {loading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                    {currentAIData ? 'Refresh AI Guide' : 'Personalize with AI'}
+                  </button>
+                </div>
+
+                <AnimatePresence mode="wait">
+                  {loading ? (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-20 flex flex-col items-center justify-center space-y-4">
+                      <div className="w-16 h-16 rounded-3xl bg-indigo-600/10 flex items-center justify-center text-indigo-600 animate-pulse">
+                        <Bot size={32} />
+                      </div>
+                      <p className="text-sm font-black italic text-slate-500">AI is curating your personalized guide...</p>
+                    </motion.div>
+                  ) : currentAIData ? (
+                    <motion.div key="ai-content" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+                      <div className="p-8 rounded-[3rem] bg-indigo-600/5 border-2 border-indigo-600/10 space-y-6">
+                        <div className="flex items-center gap-2 text-indigo-600">
+                          <Zap size={20} />
+                          <span className="text-xs font-black uppercase tracking-widest">AI Generated Excellence</span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {Object.entries(currentAIData).map(([key, value], idx) => (
+                            <div key={idx} className="space-y-3">
+                              <h5 className="text-xs font-black uppercase tracking-widest text-slate-400">{key.replace(/([A-Z])/g, ' $1')}</h5>
+                              {Array.isArray(value) ? (
+                                <ul className="space-y-2">
+                                  {value.map((v, i) => (
+                                    <li key={i} className="flex items-start gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
+                                      {v}
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 leading-relaxed">{value}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100 dark:border-slate-800" /></div>
+                        <div className="relative flex justify-center text-[10px]"><span className="px-4 bg-white dark:bg-slate-950 text-slate-400 font-bold uppercase tracking-widest">Original Guidelines Below</span></div>
+                      </div>
+                      {isRichEvent ? renderRichTab() : renderLegacyTab()}
+                    </motion.div>
+                  ) : isRichEvent ? (
+                    <motion.div key={selectedEvent + activeTab + 'rich'}
+                      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                      {renderRichTab()}
+                    </motion.div>
+                  ) : (
+                    <motion.div key={selectedEvent + activeTab + 'legacy'}
+                      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                      {renderLegacyTab()}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
           </div>
         </div>
 

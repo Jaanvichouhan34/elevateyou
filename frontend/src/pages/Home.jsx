@@ -4,7 +4,7 @@ import { Shirt, BookOpen, MessageSquare, ArrowRight, Star, TrendingUp, Users, Ro
 import { Link } from 'react-router-dom';
 import InfiniteTypewriter from '../components/InfiniteTypewriter';
 import HeroDarkIllustration from '../components/HeroDarkIllustration';
-import HeroLightIllustration from '../components/HeroLightIllustration';
+import HeroLightVisual from '../components/HeroLightVisual';
 import { useInView } from 'react-intersection-observer';
 import { useTheme } from '../context/ThemeContext';
 
@@ -214,7 +214,7 @@ const Home = () => {
               {isDark ? (
                 <HeroDarkIllustration />
               ) : (
-                <HeroLightIllustration />
+                <HeroLightVisual />
               )}
             </motion.div>
           </div>

@@ -6,35 +6,44 @@
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-38B2AC.svg)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248.svg)
 
-**ElevateU** is a comprehensive, full-stack self-advancement platform designed to help you prepare for professional environments, optimize your communication skills, and bring out your best self. It uses AI to analyze outfits, provide communication feedback, and offer structured quizzes.
+**ElevateU** is a comprehensive, full-stack self-advancement platform designed to help you prepare for professional environments, optimize your communication skills, and bring out your best self. It utilizes **Google Gemini (Vision)** for outfit analysis and **Groq (Llama 3.3)** for real-time communication coaching and personalized event prep.
 
 ---
 
 ## ✨ Features
 
-- 📸 **AI Outfit Scanner:** Upload an image or describe your outfit, and get real-time AI feedback on event appropriateness, color coordination, and grooming.
-- 💬 **AI Communication Trainer:** Practice common interview questions or casual conversation formats and get actionable feedback.
-- 🧠 **Interactive Quizzes:** Test your knowledge in various self-improvement domains.
-- 🎨 **Modern Interface:** A sleek, fully responsive, glassmorphism-inspired UI with beautiful dark mode support.
-- 🔒 **Secure Authentication:** JWT-based user authentication and data protection.
-- 📊 **User Dashboard:** Track your progress, review past outfit scans, and monitor quiz scores all in one place.
+- 📸 **AI Outfit Scanner:** 
+  - **Live Camera Capture**: Snapshot your outfit directly from the browser.
+  - **Visual Analysis**: Powered by Gemini 1.5 Flash for expert feedback on appropriateness and style.
+  - **Text Mode**: Describe your outfit if you don't have a photo.
+- 💬 **AI Communication Trainer:** 
+  - **AI Chatbot**: Practice interviews, grammar, or rephrasing with Llama 3.3 70B.
+  - **Dynamic Feedback**: Real-time professional critique of your spoken/written responses.
+- 🧠 **AI-Powered Quizzes:** 
+  - **Dynamic Level Generation**: AI crafts unique scenarios for 20+ mastery levels across 6 topics.
+  - **Local Fallback**: Robust system that works even if the AI service is busy.
+- 📅 **Event Prep Guides:** 
+  - **Personalization**: Get AI-generated guides tailored to your specific event and role.
+  - **Rich Data**: Built-in expertise for 30+ life scenarios.
+- 🎨 **Modern Interface:** 
+  - **Premium Aesthetics**: Sleek glassmorphism, fluid animations (Framer Motion), and theme-aware SVG illustrations.
+  - **Dynamic Design**: Interactive cards and real-time progress tracking.
 
 ---
 
 ## 🛠️ Technology Stack
 
 **Frontend:**
-- React (built with Vite)
-- Tailwind CSS v4
-- Framer Motion (Animations)
-- Axios & React Router
-- Lucide React (Icons)
+- React (Vite) + Tailwind CSS v4
+- Framer Motion (Animations) & Lucide React (Icons)
+- Context API (Auth & Theme Management)
 
 **Backend:**
 - Node.js & Express.js
 - MongoDB & Mongoose
-- OpenAI API (Vision + GPT-4)
-- JWT Authentication & Bcryptjs
+- **AI Engine**: 
+  - **Google Gemini 1.5 Flash** (Image Processing)
+  - **Groq (Llama 3.3 70B)** (Text Reasoning & Logic)
 
 ---
 
@@ -63,7 +72,8 @@ Create a `.env` file in the `backend` folder:
 PORT=5000
 MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
-OPENAI_API_KEY=your_openai_api_key
+GEMINI_API_KEY=your_google_gemini_key
+GROQ_API_KEY=your_groq_api_key
 ```
 Run the backend server:
 ```bash

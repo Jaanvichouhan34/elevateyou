@@ -1,7 +1,7 @@
-// HeroLightIllustration.jsx
-// Drop into: frontend/src/components/HeroLightIllustration.jsx
+// HeroLightVisual.jsx
+// Drop into: frontend/src/components/HeroLightVisual.jsx
 
-const HeroLightIllustration = () => {
+const HeroLightVisual = () => {
     return (
         <div className="relative w-full max-w-[620px] h-[600px] flex items-center justify-center">
             <svg
@@ -480,4 +480,4 @@ const HeroLightIllustration = () => {
     );
 };
 
-export default HeroLightIllustration;
+export default HeroLightVisual;

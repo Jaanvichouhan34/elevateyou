@@ -80,6 +80,7 @@ const AITrainer = () => {
   const [progress, setProgress] = useState(getProgress());
   const [levelUnlocked, setLevelUnlocked] = useState(false);
   const [showAllLevels, setShowAllLevels] = useState(false);
+  const [error, setError] = useState(null);
 
   // Chat state
   const [chatMode, setChatMode] = useState('Casual Talk');
@@ -96,23 +97,45 @@ const AITrainer = () => {
     }
   }, [messages]);
 
-  const startQuiz = () => {
-    const levelKey = `Level ${level}`;
-    const bank = quizData[topic][levelKey];
-    // Create a deep copy and shuffle
-    const shuffled = [...bank].sort(() => 0.5 - Math.random());
-    setQuestions(shuffled);
+  const [quizLoading, setQuizLoading] = useState(false);
+
+  const fetchAIQuiz = async () => {
+    setQuizLoading(true);
     setQuizState('active');
-    setCurrentQuestion(0);
-    setScore(0);
-    setUserAnswers([]);
-    setSelectedAnswer(null);
-    setShowFeedback(false);
-    setLevelUnlocked(false);
+    setError(null);
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/trainer/quiz/generate`, {
+        topic,
+        level: levelLabels[level]
+      }, {
+        headers: { Authorization: `Bearer ${token || 'demo-token'}` }
+      });
+      
+      setQuestions(response.data.questions);
+      setCurrentQuestion(0);
+      setScore(0);
+      setUserAnswers([]);
+      setSelectedAnswer(null);
+      setShowFeedback(false);
+      setLevelUnlocked(false);
+    } catch (err) {
+      console.error('Quiz fetch error:', err);
+      setError('AI failed to generate quiz. Using local fallback.');
+      // Local fallback
+      const levelKey = `Level ${level}`;
+      const bank = quizData[topic][levelKey] || quizData[topic]['Level 1'];
+      setQuestions([...bank].sort(() => 0.5 - Math.random()));
+    } finally {
+      setQuizLoading(false);
+    }
+  };
+
+  const startQuiz = () => {
+    fetchAIQuiz();
   };
 
   const handleAnswer = (optionIndex) => {
-    if (showFeedback) return;
+    if (showFeedback || !questions[currentQuestion]) return;
     const isCorrect = optionIndex === questions[currentQuestion].correctAnswer;
     setSelectedAnswer(optionIndex);
     setShowFeedback(true);
@@ -136,17 +159,14 @@ const AITrainer = () => {
       setShowFeedback(false);
     } else {
       // Quiz complete — check if passed
-      const isPerfectScore = score === 5;
-      const isPassing = score >= PASSING_SCORE;
+      const isPerfectScore = score === questions.length;
+      const isPassing = score >= (questions.length * 0.8);
       
       if (isPassing && level < TOTAL_LEVELS) {
         const newProgress = { ...progress, [topic]: Math.max(progress[topic], level + 1) };
         setProgress(newProgress);
         saveProgress(newProgress);
         setLevelUnlocked(true);
-      } else if (isPassing && level === TOTAL_LEVELS) {
-        // Just save to make sure we persist state
-        saveProgress(progress);
       }
       
       if (isPerfectScore || (isPassing && level < TOTAL_LEVELS)) {
@@ -198,7 +218,7 @@ const AITrainer = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token || 'demo-token'}`
         },
         body: JSON.stringify({
           message: input,
@@ -209,12 +229,24 @@ const AITrainer = () => {
 
       const data = await response.json();
 
-      if (response.status === 401) {
+      if (response.status === 401 && token) {
         setMessages(prev => [...prev, { 
           role: 'assistant', 
-          content: 'Session expired. Please log out and log back in to continue practicing! 🛡️',
+          content: 'Session expired. Falling back to Guest Mode... 🛡️',
           isFallback: false
         }]);
+        // Retry once with demo token
+        const retryResponse = await fetch(`${API_BASE_URL}/api/trainer/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer demo-token'
+          },
+          body: JSON.stringify({ message: input, mode: chatMode, history })
+        });
+        const retryData = await retryResponse.json();
+        const retryAiText = retryData.response || 'AI is temporarily unavailable.';
+        setMessages(prev => [...prev, { role: 'assistant', content: retryAiText, isFallback: true }]);
         return;
       }
 
@@ -378,9 +410,30 @@ const AITrainer = () => {
             )}
 
             {/* ACTIVE QUIZ */}
-            {quizState === 'active' && questions.length > 0 && (
-              <div className="max-w-4xl mx-auto py-10 min-h-[600px] flex flex-col justify-between">
-                <div>
+            {quizState === 'active' && (
+              <div className="max-w-4xl mx-auto py-10 min-h-[600px] flex flex-col justify-between relative">
+                {quizLoading ? (
+                  <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm rounded-[3.5rem]">
+                    <div className="relative w-32 h-32 mb-8">
+                       <motion.div 
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                        className="absolute inset-0 rounded-full border-4 border-dashed border-indigo-600/30"
+                       />
+                       <motion.div 
+                        animate={{ rotate: -360 }}
+                        transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                        className="absolute inset-2 rounded-full border-4 border-indigo-600 border-t-transparent"
+                       />
+                       <div className="absolute inset-0 flex items-center justify-center text-indigo-600">
+                          <Bot size={40} className="animate-bounce" />
+                       </div>
+                    </div>
+                    <h3 className="text-2xl font-black tracking-tighter italic">AI is Crafting Your Quiz...</h3>
+                    <p className="text-slate-500 font-medium mt-2">Generating personalized Level {level} scenarios.</p>
+                  </div>
+                ) : questions.length > 0 && (
+                  <>
                   {/* Header */}
                   <div className="flex justify-between items-end mb-12 gap-8">
                     <div className="space-y-2">
@@ -479,7 +532,6 @@ const AITrainer = () => {
                       </motion.div>
                     )}
                   </AnimatePresence>
-                </div>
 
                 {/* Next Button */}
                 <div className="mt-10 flex justify-end">
@@ -494,11 +546,13 @@ const AITrainer = () => {
                       <ChevronRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
                     </motion.button>
                   ) : (
-                    <div className="h-[60px]" /> // Spacer to prevent jumping
+                    <div className="h-[60px]" />
                   )}
                 </div>
-              </div>
+              </>
             )}
+          </div>
+        )}
 
             {/* RESULT SCREEN */}
             {quizState === 'result' && (

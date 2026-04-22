@@ -1,14 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const auth = require('../middleware/auth');
 const OutfitScan = require('../models/OutfitScan');
-const { saveData, readData } = require('../utils/storage');
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const { saveData } = require('../utils/storage');
+const { analyzeImage, generateText, extractJSON } = require('../utils/aiService');
 
 const outfitFallbacks = {
+  // ... (keeping fallback data as is to keep it robust)
   Interview: {
     score: 8,
     summary: "Your outfit shows a professional approach suitable for an interview setting. Based on your input, you have made thoughtful style choices.",
@@ -59,18 +58,6 @@ const outfitFallbacks = {
   }
 };
 
-// Helper: extract JSON from possibly markdown-wrapped response
-function extractJSON(text) {
-  try {
-    const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (match) return JSON.parse(match[1].trim());
-    return JSON.parse(text.trim());
-  } catch (e) {
-    console.error('JSON Extraction Error:', e);
-    throw new Error('Failed to parse AI response as JSON');
-  }
-}
-
 // POST /api/outfit/scan-image
 // Body: { event: string, imageBase64: string (data URI) }
 router.post('/scan-image', auth, async (req, res) => {
@@ -81,12 +68,6 @@ router.post('/scan-image', auth, async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
-    // Prepare image for Gemini
-    const base64Data = imageBase64.split(',')[1];
-    const mimeType = imageBase64.split(',')[0].split(':')[1].split(';')[0];
-
     const prompt = `You are a professional fashion and style consultant. Analyze this outfit image for a ${event} event. 
 Return a JSON object with EXACTLY these keys:
 {
@@ -99,18 +80,8 @@ Return a JSON object with EXACTLY these keys:
 }
 Be specific to what you actually see. Never give generic advice. For a ${event}, scoring should reflect how suitable the outfit truly is. Return only the JSON.`;
 
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: base64Data,
-          mimeType: mimeType
-        }
-      }
-    ]);
-
-    const response = await result.response;
-    const aiResData = extractJSON(response.text());
+    const aiText = await analyzeImage(imageBase64, prompt);
+    const aiResData = extractJSON(aiText);
 
     // Save to Database / Local Fallback
     let savedScan = null;
@@ -120,18 +91,11 @@ Be specific to what you actually see. Never give generic advice. For a ${event},
           userId: req.userData.userId,
           event,
           inputType: 'image',
-          aiResponse: {
-            summary: aiResData.summary,
-            strengths: aiResData.strengths,
-            risks: aiResData.risks,
-            improvements: aiResData.improvements,
-            groomingTips: aiResData.groomingTips,
-            score: aiResData.score
-          }
+          aiResponse: aiResData
         });
         savedScan = await newScan.save();
       } catch (e) {
-        console.error('DB Save error, falling back to JSON:', e);
+        console.error('DB Save error:', e);
       }
     }
 
@@ -165,8 +129,6 @@ router.post('/scan-text', auth, async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
     const prompt = `You are a professional style consultant. The user described their outfit as: "${outfitDescription}" for a ${event} event.
 Analyze the description and return a JSON object with EXACTLY these keys:
 {
@@ -179,9 +141,8 @@ Analyze the description and return a JSON object with EXACTLY these keys:
 }
 Reference the actual items mentioned. Never be generic. Score strictly for ${event} suitability. Return only the JSON.`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const aiResData = extractJSON(response.text());
+    const aiText = await generateText(prompt, "You are a professional fashion and style consultant.");
+    const aiResData = extractJSON(aiText);
 
     // Save to Database / Local Fallback
     let savedScan = null;
@@ -192,18 +153,11 @@ Reference the actual items mentioned. Never be generic. Score strictly for ${eve
           event,
           inputType: 'text',
           outfitDescription,
-          aiResponse: {
-            summary: aiResData.summary,
-            strengths: aiResData.strengths,
-            risks: aiResData.risks,
-            improvements: aiResData.improvements,
-            groomingTips: aiResData.groomingTips,
-            score: aiResData.score
-          }
+          aiResponse: aiResData
         });
         savedScan = await newScan.save();
       } catch (e) {
-        console.error('DB Save error, falling back to JSON:', e);
+        console.error('DB Save error:', e);
       }
     }
 

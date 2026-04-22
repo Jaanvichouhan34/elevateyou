@@ -1,14 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-const QuizResult = require('../models/QuizResult');
 const auth = require('../middleware/auth');
-const { saveData, readData } = require('../utils/storage');
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const QuizResult = require('../models/QuizResult');
+const { saveData } = require('../utils/storage');
+const { generateText, extractJSON } = require('../utils/aiService');
 
 const chatFallbacks = {
+    // ... (keeping fallbacks)
   'Interview Simulation': [
     "Great answer! For a stronger response, try using the STAR method — Situation, Task, Action, Result. This gives your answers clear structure. Now, tell me about a time you faced a challenge at work or college and how you handled it.",
     "Good start! Interviewers love specific examples. Can you quantify that result? For instance, 'I improved team efficiency by 30%' is much stronger than 'I improved efficiency'. Try again with a number.",
@@ -38,41 +37,28 @@ const chatFallbacks = {
   ]
 };
 
-// Helper: extract JSON from possibly markdown-wrapped response
-function extractJSON(text) {
-  try {
-    const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (match) return JSON.parse(match[1].trim());
-    return JSON.parse(text.trim());
-  } catch (e) {
-    console.error('JSON Extraction Error:', e);
-    throw new Error('Failed to parse AI response as JSON');
-  }
-}
-
 // POST /api/trainer/quiz/generate
 router.post('/quiz/generate', auth, async (req, res) => {
   const { topic, level } = req.body;
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const prompt = `Generate a 10-question multiple-choice quiz for a ${level} level on the topic of ${topic}. 
-Each question must have: text, options (array of 4 strings), and correctAnswer (index 0-3). 
+    const prompt = `Generate a 5-question multiple-choice quiz for a ${level} level on the topic of ${topic}. 
+Each question must have: "text", "options" (array of 4 strings), and "correctAnswer" (index 0-3), and "explanation" (string). 
 Provide JSON format with a "questions" field. Return only the JSON.`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    res.status(200).json(extractJSON(response.text()));
+    const aiText = await generateText(prompt, "You are an expert educational content creator.");
+    res.status(200).json({ questions: extractJSON(aiText).questions });
   } catch (error) {
     console.error('Quiz generation error:', error);
     res.status(500).json({ 
-      message: 'Quiz generation failed: ' + error.message,
+      message: 'Quiz generation failed',
       error: error.message 
     });
   }
 });
 
 // POST /api/trainer/quiz/submit
+// ... (keeping implementation as is)
 router.post('/quiz/submit', auth, async (req, res) => {
   const { topic, level, score, weakAreas, suggestions } = req.body;
   const User = require('../models/User');
@@ -82,7 +68,6 @@ router.post('/quiz/submit', auth, async (req, res) => {
 
     if (mongoose.connection.readyState === 1) {
       try {
-        // Save the quiz result
         const newResult = new QuizResult({
           userId: req.userData.userId,
           topic,
@@ -93,12 +78,10 @@ router.post('/quiz/submit', auth, async (req, res) => {
         });
         savedResult = await newResult.save();
 
-        // Reward XP and handle leveling
         const user = await User.findById(req.userData.userId);
         if (user) {
           const xpGain = score * 10;
           user.xp += xpGain;
-
           const levels = ['Starter', 'Intermediate', 'Advanced', 'Professional', 'Master'];
           if (user.xp >= user.nextLevelXp) {
             let currentIdx = levels.indexOf(user.level);
@@ -110,7 +93,7 @@ router.post('/quiz/submit', auth, async (req, res) => {
           await user.save();
         }
       } catch (e) {
-        console.error('DB Submit error, falling back to JSON:', e);
+        console.error('DB Submit error:', e);
       }
     }
 
@@ -127,7 +110,6 @@ router.post('/quiz/submit', auth, async (req, res) => {
 
     res.status(201).json(savedResult);
   } catch (error) {
-    console.error('Submit error:', error);
     res.status(500).json({ message: 'Error saving result' });
   }
 });
@@ -145,23 +127,13 @@ router.post('/chat', auth, async (req, res) => {
   };
 
   try {
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-flash',
-      systemInstruction: systemPrompts[mode] || systemPrompts['Casual Talk']
-    });
+    const formattedHistory = (history || []).map(m => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.content
+    }));
 
-    const chat = model.startChat({
-      history: Array.isArray(history) 
-        ? history.slice(-10).map(m => ({
-            role: m.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: m.content }]
-          }))
-        : []
-    });
-
-    const result = await chat.sendMessage(message);
-    const response = await result.response;
-    res.status(200).json({ response: response.text() });
+    const responseText = await generateText(message, systemPrompts[mode] || systemPrompts['Casual Talk'], formattedHistory);
+    res.status(200).json({ response: responseText });
   } catch (error) {
     console.error('Chat error:', error.message);
     const fallbackMode = req.body.mode || 'Interview Simulation';

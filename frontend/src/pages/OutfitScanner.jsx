@@ -1,13 +1,13 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Upload, Send, Sparkles, CheckCircle2, XCircle, Info, RefreshCw, Search, Trophy, Lightbulb, Target, AlertCircle } from 'lucide-react';
+import { Camera, Upload, Send, Sparkles, CheckCircle2, XCircle, Info, RefreshCw, Search, Trophy, Lightbulb, Target, AlertCircle, StopCircle, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../api/config';
 
 const OutfitScanner = () => {
   const { token } = useAuth();
   const [selectedEvent, setSelectedEvent] = useState('Interview');
-  const [mode, setMode] = useState('image'); // 'image' or 'text'
+  const [mode, setMode] = useState('upload'); // 'upload', 'camera', or 'text'
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [description, setDescription] = useState('');
@@ -15,7 +15,13 @@ const OutfitScanner = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [showAllEvents, setShowAllEvents] = useState(false);
+  
+  // Camera refs and state
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
+  const [stream, setStream] = useState(null);
+  const [cameraError, setCameraError] = useState(null);
 
   const events = [
     'Interview', 'Viva', 'Presentation', 'Group Discussion', 'Meeting',
@@ -23,6 +29,65 @@ const OutfitScanner = () => {
     'Graduation Ceremony', 'Job Fair', 'Casual Friday', 'Wedding Guest'
   ];
   const visibleEvents = showAllEvents ? events : events.slice(0, 6);
+
+  useEffect(() => {
+    // Cleanup stream on unmount
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stream]);
+
+  // Handle attaching stream to video element when it appears
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream, mode]);
+
+  const startCamera = async () => {
+    try {
+      setCameraError(null);
+      const newStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } 
+      });
+      setStream(newStream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = newStream;
+      }
+      setMode('camera');
+      setImagePreview(null);
+    } catch (err) {
+      console.error('Camera access error:', err);
+      setCameraError('Camera access denied. Please check permissions.');
+      setMode('upload');
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    const dataUrl = canvas.toDataURL('image/jpeg');
+    setImagePreview(dataUrl);
+    stopCamera();
+    setMode('upload'); // Switch back to upload mode to show preview
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -36,7 +101,7 @@ const OutfitScanner = () => {
   };
 
   const handleScan = async () => {
-    if (mode === 'image' && !imagePreview) return;
+    if ((mode === 'upload' || mode === 'camera') && !imagePreview) return;
     if (mode === 'text' && !description.trim()) return;
 
     setLoading(true);
@@ -45,12 +110,12 @@ const OutfitScanner = () => {
 
     try {
       let response;
-      if (mode === 'image') {
+      if (mode === 'upload' || mode === 'camera') {
         response = await fetch(`${API_BASE_URL}/api/outfit/scan-image`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token || 'demo-token'}`
           },
           body: JSON.stringify({ event: selectedEvent, imageBase64: imagePreview })
         });
@@ -59,7 +124,7 @@ const OutfitScanner = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token || 'demo-token'}`
           },
           body: JSON.stringify({ event: selectedEvent, outfitDescription: description })
         });
@@ -68,7 +133,38 @@ const OutfitScanner = () => {
       const data = await response.json();
       
       if (response.status === 401) {
-        throw new Error('Session expired. Please log out and back in.');
+        // Retry with demo token
+        const retryUrl = (mode === 'upload' || mode === 'camera') 
+          ? `${API_BASE_URL}/api/outfit/scan-image` 
+          : `${API_BASE_URL}/api/outfit/scan-text`;
+        
+        const retryBody = (mode === 'upload' || mode === 'camera')
+          ? { event: selectedEvent, imageBase64: imagePreview }
+          : { event: selectedEvent, outfitDescription: description };
+
+        const retryRes = await fetch(retryUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer demo-token'
+          },
+          body: JSON.stringify(retryBody)
+        });
+        
+        if (!retryRes.ok) throw new Error('Authentication failed even with Guest Mode.');
+        response = retryRes;
+        const retryData = await response.json();
+        const ai = retryData.aiResponse || retryData;
+        setResult({
+          score: ai.score ?? 7,
+          summary: ai.summary || 'Analysis complete.',
+          strengths: ai.strengths || ai.appropriate || [],
+          improvements: ai.improvements || [],
+          risks: ai.risks || ai.notSuitable || [],
+          groomingTips: ai.groomingTips || [],
+          isFallback: ai.isFallback || retryData.isFallback
+        });
+        return;
       }
 
       if (!response.ok) {
@@ -88,16 +184,8 @@ const OutfitScanner = () => {
       });
     } catch (err) {
       console.error('Scan error:', err);
-      // Hard fallback if completely offline
-      setResult({
-        score: 8,
-        summary: "Your outfit shows a professional approach suitable for the setting. Based on your input, you have made thoughtful style choices.",
-        strengths: ["Professional color choice", "Appropriate formality level", "Clean and well-maintained appearance"],
-        improvements: ["Ensure all clothes are freshly ironed with no creases", "A subtle accessory can elevate the overall look"],
-        risks: ["Overly casual pieces can undermine first impressions", "Wrinkled or ill-fitted clothing signals lack of preparation"],
-        groomingTips: ["Keep hair neatly styled", "Ensure shoes are clean and polished"],
-        isFallback: true
-      });
+      setError(err.message);
+      // Fallback is handled in backend, but we can show offline fallback here if needed
     } finally {
       setLoading(false);
     }
@@ -109,6 +197,8 @@ const OutfitScanner = () => {
     setImageFile(null);
     setImagePreview(null);
     setDescription('');
+    stopCamera();
+    setMode('upload');
   };
 
   return (
@@ -123,11 +213,23 @@ const OutfitScanner = () => {
         </motion.div>
 
         <div className="flex p-2 glass rounded-[2.5rem] shadow-2xl border-indigo-500/10">
-          <button onClick={() => setMode('image')} className={`px-10 py-4 rounded-[2rem] text-sm font-black transition-all flex items-center ${mode === 'image' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-indigo-600'}`}>
-            <Camera size={18} className="mr-2" /> Image Scan
+          <button 
+            onClick={() => { setMode('upload'); stopCamera(); }} 
+            className={`px-8 py-3 rounded-[2rem] text-xs font-black transition-all flex items-center ${mode === 'upload' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-indigo-600'}`}
+          >
+            <Upload size={16} className="mr-2" /> Upload
           </button>
-          <button onClick={() => setMode('text')} className={`px-10 py-4 rounded-[2rem] text-sm font-black transition-all flex items-center ${mode === 'text' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-indigo-600'}`}>
-            <Send size={18} className="mr-2" /> Text Desc
+          <button 
+            onClick={startCamera} 
+            className={`px-8 py-3 rounded-[2rem] text-xs font-black transition-all flex items-center ${mode === 'camera' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-indigo-600'}`}
+          >
+            <Camera size={16} className="mr-2" /> Live Cam
+          </button>
+          <button 
+            onClick={() => { setMode('text'); stopCamera(); }} 
+            className={`px-8 py-3 rounded-[2rem] text-xs font-black transition-all flex items-center ${mode === 'text' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-indigo-600'}`}
+          >
+            <Send size={16} className="mr-2" /> Text
           </button>
         </div>
       </div>
@@ -141,7 +243,7 @@ const OutfitScanner = () => {
                 <h3 className="font-black text-2xl italic flex items-center">
                   <Target size={24} className="mr-3 text-indigo-600" /> Target Event
                 </h3>
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 gap-3 text-slate-900 dark:text-white">
                   {visibleEvents.map(event => (
                     <button key={event} onClick={() => setSelectedEvent(event)}
                       className={`p-5 rounded-[2rem] text-left font-black transition-all flex items-center justify-between border-2 ${selectedEvent === event ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-indigo-200'}`}>
@@ -163,12 +265,12 @@ const OutfitScanner = () => {
               </div>
             </div>
 
-            {/* Upload / Text Area */}
+            {/* Upload / Camera / Text Area */}
             <div className="lg:col-span-8">
               <div className="glass rounded-[3.5rem] p-10 md:p-16 border-indigo-500/5 shadow-2xl h-full flex flex-col items-center justify-center relative overflow-hidden group">
                 <div className="absolute inset-0 bg-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
-                {mode === 'image' ? (
+                {mode === 'upload' ? (
                   <div className="w-full text-center space-y-10">
                     <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
                     {!imagePreview ? (
@@ -177,7 +279,7 @@ const OutfitScanner = () => {
                         <div className="w-24 h-24 bg-indigo-600/10 rounded-[2.5rem] flex items-center justify-center text-indigo-600 mx-auto mb-8 group-hover/box:scale-110 transition-transform">
                           <Upload size={40} />
                         </div>
-                        <h4 className="text-xl font-black mb-2">Upload Outfit Photo</h4>
+                        <h4 className="text-xl font-black mb-2 text-slate-900 dark:text-white">Upload Outfit Photo</h4>
                         <p className="text-sm text-slate-400 font-medium">JPEG, PNG or WebP up to 10MB</p>
                       </div>
                     ) : (
@@ -190,18 +292,63 @@ const OutfitScanner = () => {
                       </div>
                     )}
                   </div>
+                ) : mode === 'camera' ? (
+                  <div className="w-full text-center space-y-8">
+                    {!imagePreview ? (
+                      <div className="relative rounded-[3.5rem] overflow-hidden shadow-2xl border-4 border-white dark:border-slate-800 bg-black aspect-video max-h-[450px] mx-auto">
+                        <video 
+                          ref={videoRef} 
+                          autoPlay 
+                          playsInline 
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-6">
+                          <button 
+                            onClick={capturePhoto}
+                            className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-2xl hover:scale-110 transition-all group/shutter"
+                          >
+                            <div className="w-12 h-12 rounded-full border-4 border-slate-900 group-hover:scale-90 transition-all" />
+                          </button>
+                          <button 
+                            onClick={stopCamera}
+                            className="w-16 h-16 rounded-full bg-red-500 text-white flex items-center justify-center shadow-2xl hover:scale-110 transition-all"
+                          >
+                            <StopCircle size={32} />
+                          </button>
+                        </div>
+                        {cameraError && (
+                          <div className="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center p-10 text-center">
+                            <XCircle size={48} className="text-red-500 mb-4" />
+                            <p className="text-white font-black">{cameraError}</p>
+                            <button onClick={() => setMode('upload')} className="mt-6 px-10 py-3 bg-indigo-600 text-white rounded-full font-black text-xs">Switch to Upload</button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="relative inline-block">
+                        <img src={imagePreview} alt="Captured" className="max-h-[400px] rounded-[3.5rem] shadow-2xl border-4 border-white dark:border-slate-800" />
+                        <div className="absolute -bottom-4 left-0 right-0 flex justify-center gap-4">
+                           <button onClick={() => { setImagePreview(null); startCamera(); }}
+                            className="px-6 py-3 bg-indigo-600 text-white rounded-2xl shadow-xl font-black text-xs flex items-center gap-2 hover:scale-105 transition-all">
+                            <RefreshCw size={16} /> Retake
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    <canvas ref={canvasRef} className="hidden" />
+                  </div>
                 ) : (
                   <div className="w-full space-y-8">
                     <div className="text-center space-y-4 mb-8">
                       <div className="w-24 h-24 bg-indigo-600/10 rounded-[2.5rem] flex items-center justify-center text-indigo-600 mx-auto">
                         <Sparkles size={40} />
                       </div>
-                      <h4 className="text-2xl font-black italic">Describe Your Outfit</h4>
+                      <h4 className="text-2xl font-black italic text-slate-900 dark:text-white">Describe Your Outfit</h4>
                       <p className="text-slate-500 font-medium">Tell us what you're planning to wear.</p>
                     </div>
                     <textarea value={description} onChange={(e) => setDescription(e.target.value)}
                       placeholder="Example: I'm wearing a navy blue slim-fit blazer with a white crisp shirt, dark grey chinos, and brown leather oxfords."
-                      className="w-full h-48 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 text-sm outline-none focus:border-indigo-500 transition-all shadow-inner font-medium leading-relaxed" />
+                      className="w-full h-48 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 text-sm outline-none focus:border-indigo-500 transition-all shadow-inner font-medium leading-relaxed text-slate-900 dark:text-white" />
                   </div>
                 )}
 
@@ -217,7 +364,7 @@ const OutfitScanner = () => {
                 </AnimatePresence>
 
                 <button onClick={handleScan}
-                  disabled={loading || (mode === 'image' ? !imagePreview : !description.trim())}
+                  disabled={loading || (mode !== 'text' ? !imagePreview : !description.trim())}
                   className="mt-12 w-full max-w-sm py-6 bg-indigo-600 text-white rounded-[2.5rem] font-black tracking-[0.2em] text-sm shadow-2xl shadow-indigo-500/30 hover:bg-indigo-700 hover:scale-[1.05] active:scale-[0.95] transition-all flex items-center justify-center disabled:opacity-50 relative overflow-hidden group/btn">
                   <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700" />
                   {loading ? (
