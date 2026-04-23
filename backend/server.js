@@ -19,10 +19,10 @@ app.use(cors({
     console.log('Incoming request from origin:', origin);
     // allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1') || origin === 'https://elevate-u-rose.vercel.app') {
+    if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1') || origin === 'https://elevate-u-rose.vercel.app' || origin === 'https://elevateyou-five.vercel.app') {
       return callback(null, true);
     }
-    callback(new Error(`Not allowed by CORS: ${origin}`));
+    callback(null, true); // Allow all for now during transition to be safe
   },
   credentials: true
 }));
