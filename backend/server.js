@@ -15,15 +15,9 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: function (origin, callback) {
-    console.log('Incoming request from origin:', origin);
-    // allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1') || origin === 'https://elevate-u-rose.vercel.app' || origin === 'https://elevateyou-five.vercel.app') {
-      return callback(null, true);
-    }
-    callback(null, true); // Allow all for now during transition to be safe
-  },
+  origin: '*', // Temporarily allow all for the transition to production
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
