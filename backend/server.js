@@ -26,7 +26,18 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(express.json({ limit: '10mb' })); // Increase for base64 image payloads
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Health Check Route
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'online',
+    dbState: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
+    readyState: mongoose.connection.readyState,
+    time: new Date()
+  });
+});
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
@@ -43,9 +54,9 @@ app.use((err, req, res, next) => {
 });
 
 // Database Connection
-// mongoose.connect(process.env.MONGO_URI)
-//   .then(() => console.log('Connected to MongoDB'))
-//   .catch(err => console.error('Database connection error:', err));
+mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI)
+  .then(() => console.log('Connected to MongoDB'))
+  .catch(err => console.error('Database connection error:', err));
 
 // Start Server independently
 app.listen(PORT, () => {

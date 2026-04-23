@@ -36,7 +36,7 @@ router.get('/:userId', auth, async (req, res) => {
       };
     }
 
-    // Add local counts
+    // Add local counts (ensuring we use the correct collection name)
     const localScans = readData('outfit_scans').filter(s => s.userId === req.params.userId).length;
     const localQuizzes = readData('quiz_results').filter(q => q.userId === req.params.userId).length;
 

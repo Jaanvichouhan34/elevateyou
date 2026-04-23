@@ -9,16 +9,25 @@ router.post('/register', async (req, res) => {
   const { name, email, password } = req.body;
 
   try {
-    // Check if DB is connected
-    if (mongoose.connection.readyState !== 1) {
-      console.log('Using Demo Mode for Registration');
-      return res.status(201).json({ token: 'demo-token', userId: 'demo-user', name: name || 'Guest' });
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'All fields are required.' });
     }
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ message: 'User already exists' });
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ message: 'Database is still connecting. Please wait 5 seconds.' });
+    }
 
-    const newUser = new User({ name, email, password });
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+    if (existingUser) {
+      return res.status(400).json({ message: 'An account with this email already exists.' });
+    }
+
+    const newUser = new User({ 
+      name: name.trim(), 
+      email: email.toLowerCase().trim(), 
+      password 
+    });
+    
     await newUser.save();
 
     const token = jwt.sign(
@@ -28,10 +37,10 @@ router.post('/register', async (req, res) => {
     );
 
     res.status(201).json({ token, userId: newUser._id, name: newUser.name });
+
   } catch (error) {
-    // If DB error, still allow Demo Register
-    console.error('DB Error, using Fallback');
-    res.status(201).json({ token: 'demo-token', userId: 'demo-user', name: name || 'Guest' });
+    console.error('Registration Error:', error);
+    res.status(500).json({ message: 'Server error during registration', error: error.message });
   }
 });
 
@@ -42,8 +51,7 @@ router.post('/login', async (req, res) => {
   try {
     // Check if DB is connected
     if (mongoose.connection.readyState !== 1) {
-      console.log('Using Demo Mode for Login');
-      return res.status(200).json({ token: 'demo-token', userId: 'demo-user', name: 'Demo User' });
+      return res.status(503).json({ message: 'Database connecting... please try again.' });
     }
 
     const user = await User.findOne({ email });
@@ -60,9 +68,8 @@ router.post('/login', async (req, res) => {
 
     res.status(200).json({ token, userId: user._id, name: user.name });
   } catch (error) {
-    // Fallback for demo
-    console.log('DB Error, using Fallback Login');
-    res.status(200).json({ token: 'demo-token', userId: 'demo-user', name: 'Demo User' });
+    console.error('Login Error:', error);
+    res.status(500).json({ message: 'Server error during login' });
   }
 });
 

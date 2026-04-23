@@ -76,6 +76,7 @@ Return a JSON object with EXACTLY these keys:
     const savedResult = {
       userId: req.userData.userId,
       event,
+      inputType: 'image', // Critical: Added for schema validation
       aiResponse: aiResData,
       date: new Date()
     };
@@ -84,19 +85,20 @@ Return a JSON object with EXACTLY these keys:
     if (mongoose.connection.readyState === 1) {
       await OutfitScan.create(savedResult);
     } else {
+      console.log('MongoDB not connected, saving to local JSON');
       saveData('outfit_scans.json', savedResult);
     }
 
     res.status(200).json(savedResult);
 
   } catch (error) {
-    console.error('Image analysis error:', error);
+    console.error('Image analysis error DETAILS:', error);
     // Use fallback based on event
     const fallback = outfitFallbacks[event] || outfitFallbacks['Office'];
     res.status(200).json({
       aiResponse: fallback,
       isFallback: true,
-      message: 'Using offline style analysis due to API timeout.'
+      message: `AI Error: ${error.message}. Using offline analysis.`
     });
   }
 });
@@ -129,6 +131,7 @@ Return a JSON object with EXACTLY these keys:
     const savedResult = {
       userId: req.userData.userId,
       event,
+      inputType: 'text', // Critical: Added for schema validation
       aiResponse: aiResData,
       date: new Date()
     };
@@ -148,6 +151,33 @@ Return a JSON object with EXACTLY these keys:
       aiResponse: fallback,
       isFallback: true
     });
+  }
+});
+
+// GET /api/outfit/history/:userId
+router.get('/history/:userId', auth, async (req, res) => {
+  try {
+    let history = [];
+    
+    if (mongoose.connection.readyState === 1) {
+      try {
+        history = await OutfitScan.find({ userId: req.params.userId }).sort({ date: -1 });
+      } catch (e) {
+        console.error('DB Fetch error, falling back to JSON:', e);
+      }
+    }
+
+    // Combine with local data for seamless transition
+    const { readData } = require('../utils/storage');
+    const localHistory = readData('outfit_scans').filter(s => s.userId === req.params.userId);
+    
+    // Use a Map to de-duplicate if necessary, or just concat
+    const combined = [...history, ...localHistory].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    res.status(200).json(combined);
+  } catch (error) {
+    console.error('History fetch error:', error);
+    res.status(200).json([]);
   }
 });
 

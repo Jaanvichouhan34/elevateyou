@@ -22,7 +22,7 @@ import HowItWorks from './pages/HowItWorks';
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
-  return children; 
+  return token ? children : <Navigate to="/login" />; 
 };
 
 const LoadingScreen = ({ onComplete }) => (
@@ -90,7 +90,7 @@ function App() {
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/how-it-works" element={<HowItWorks />} />
 
-                {/* Shared Feature Routes */}
+                {/* Shared Feature Routes (Guest access with limits) */}
                 <Route path="/outfit-scanner" element={<OutfitScanner />} />
                 <Route path="/event-prep" element={<EventPrep />} />
                 <Route path="/trainer" element={<AITrainer />} />

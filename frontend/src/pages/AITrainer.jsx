@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare, Send, Bot, Zap, Brain, Sparkles, Target, Award,
-  RefreshCw, ChevronRight, CheckCircle, TrendingUp, Trophy, Lock,
+  RefreshCw, ChevronRight, CheckCircle, TrendingUp, Trophy, Lock as LockIcon,
   Unlock, Star, ChevronLeft, XCircle
 } from 'lucide-react';
 import { quizData } from '../data/quizData';
@@ -131,6 +131,10 @@ const AITrainer = () => {
   };
 
   const startQuiz = () => {
+    if (!token) {
+      setError('Please Login to access AI Training features.');
+      return;
+    }
     fetchAIQuiz();
   };
 
@@ -203,6 +207,10 @@ const AITrainer = () => {
 
   const handleSendMessage = async (e) => {
     if (e) e.preventDefault();
+    if (!token) {
+      setMessages(prev => [...prev, { role: 'assistant', content: "Please Login to chat with the AI Coach! 🔐" }]);
+      return;
+    }
     if (!input.trim() || isTyping) return;
 
     const userMessage = { role: 'user', content: input };
@@ -371,7 +379,7 @@ const AITrainer = () => {
                           } ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/30' : 'bg-white dark:bg-slate-900'}`}
                         >
                           <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white text-sm font-black bg-gradient-to-br ${isUnlocked ? levelColors[lvl] : 'from-slate-300 to-slate-400 dark:from-slate-700 dark:to-slate-800'}`}>
-                            {isUnlocked ? lvl : <Lock size={14} className="text-slate-500 dark:text-slate-400" />}
+                            {isUnlocked ? lvl : <LockIcon size={14} className="text-slate-500 dark:text-slate-400" />}
                           </div>
                           <div className="text-center w-full">
                             <p className={`text-[11px] font-black leading-tight ${isSelected ? 'text-indigo-600 dark:text-cyan-400' : 'text-slate-700 dark:text-slate-300'}`}>

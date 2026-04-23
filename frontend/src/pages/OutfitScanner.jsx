@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Upload, Send, Sparkles, CheckCircle2, XCircle, Info, RefreshCw, Search, Trophy, Lightbulb, Target, AlertCircle, StopCircle, Zap } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Camera, Upload, Send, Sparkles, CheckCircle2, XCircle, Info, RefreshCw, Search, Trophy, Lightbulb, Target, AlertCircle, StopCircle, Zap, Lock as LockIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../api/config';
 
@@ -15,6 +16,8 @@ const OutfitScanner = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [showAllEvents, setShowAllEvents] = useState(false);
+  const [guestScans, setGuestScans] = useState(parseInt(localStorage.getItem('guest_scans_count') || '0'));
+  const [showLoginModal, setShowLoginModal] = useState(false);
   
   // Camera refs and state
   const videoRef = useRef(null);
@@ -108,6 +111,13 @@ const OutfitScanner = () => {
     setError(null);
     setResult(null);
 
+    // Check limit for guests
+    if (!token && guestScans >= 3) {
+      setShowLoginModal(true);
+      setLoading(false);
+      return;
+    }
+
     try {
       let response;
       if (mode === 'upload' || mode === 'camera') {
@@ -128,6 +138,12 @@ const OutfitScanner = () => {
           },
           body: JSON.stringify({ event: selectedEvent, outfitDescription: description })
         });
+      }
+
+      if (!token) {
+        const newCount = guestScans + 1;
+        setGuestScans(newCount);
+        localStorage.setItem('guest_scans_count', newCount.toString());
       }
 
       const data = await response.json();
@@ -494,6 +510,43 @@ const OutfitScanner = () => {
               </button>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Login Modal for Guest Limit */}
+      <AnimatePresence>
+        {showLoginModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setShowLoginModal(false)}
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" 
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative glass max-w-md w-full p-10 rounded-[3rem] border-indigo-500/20 shadow-2xl text-center space-y-8"
+            >
+              <div className="w-20 h-20 bg-indigo-600/10 rounded-[2rem] flex items-center justify-center text-indigo-600 mx-auto">
+                <LockIcon size={40} />
+              </div>
+              <div className="space-y-4">
+                <h3 className="text-3xl font-black italic tracking-tighter">Limit Reached</h3>
+                <p className="text-slate-500 font-medium">You've used your 3 free guest scans. Log in to get unlimited AI style analysis and save your history!</p>
+              </div>
+              <div className="flex flex-col gap-4">
+                <Link to="/login" className="w-full py-5 bg-indigo-600 text-white rounded-[2rem] font-black text-sm tracking-widest shadow-xl hover:bg-indigo-700 transition-all">
+                  LOGIN NOW
+                </Link>
+                <button onClick={() => setShowLoginModal(false)} className="text-slate-400 text-xs font-black uppercase tracking-widest hover:text-indigo-600 transition-colors">
+                  MAYBE LATER
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

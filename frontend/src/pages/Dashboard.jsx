@@ -7,6 +7,7 @@ import {
   Target, Sparkles, LogOut, Settings, Bell, ChevronRight
 } from 'lucide-react';
 import axios from 'axios';
+// Test Comment
 import { API_BASE_URL } from '../api/config';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
@@ -17,6 +18,7 @@ const Dashboard = () => {
   const [stats, setStats] = useState({ scans: 0, quizzes: 0 });
   const [history, setHistory] = useState([]);
   const [quizHistory, setQuizHistory] = useState([]);
+  const [chartReady, setChartReady] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({ name: '', level: 'Professional' });
   const [loading, setLoading] = useState(true);
@@ -60,13 +62,16 @@ const Dashboard = () => {
       });
       setQuizHistory(progressRes.data?.quizHistory || []);
     } catch (err) {
-      console.error(err);
+      console.error('Fetch error:', err);
       setUser(defaultUser);
       setStats({ scans: 0, quizzes: 0 });
       setHistory([]);
       setQuizHistory([]);
     } finally {
-      setLoading(false);
+      setTimeout(() => {
+        setLoading(false);
+        setTimeout(() => setChartReady(true), 200); // Draw chart slightly after loading ends
+      }, 500); 
     }
   };
 
@@ -184,25 +189,27 @@ const Dashboard = () => {
                  {/* Charts & Stats */}
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <DashboardCard title="Analytic Growth" icon={<TrendingUp size={18} />}>
-                       <div className="h-[250px] w-full pt-6">
-                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={quizHistory.length > 0 ? quizHistory.map(q => ({ name: new Date(q.date).toLocaleDateString(), score: q.score })) : [{name: 'Empty', score: 0}]}>
-                               <defs>
-                                  <linearGradient id="colorArea" x1="0" y1="0" x2="0" y2="1">
-                                     <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
-                                     <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                                  </linearGradient>
-                               </defs>
-                               <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.05} />
-                               <XAxis dataKey="name" hide />
-                               <YAxis hide domain={[0, 10]} />
-                               <Tooltip 
-                                  contentStyle={{ borderRadius: '24px', background: 'rgba(255,255,255,0.95)', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', padding: '16px' }}
-                                  itemStyle={{ fontWeight: '900', color: '#4f46e5' }}
-                               />
-                               <Area type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={4} fillOpacity={1} fill="url(#colorArea)" />
-                            </AreaChart>
-                         </ResponsiveContainer>
+                       <div className="h-[300px] w-full">
+                         {chartReady && (
+                                                       <ResponsiveContainer width="100%" height="100%" >
+                              <AreaChart data={quizHistory.length > 0 ? quizHistory.map(q => ({ name: new Date(q.date).toLocaleDateString(), score: q.score })) : [{name: 'Start', score: 0}]}>
+                                 <defs>
+                                    <linearGradient id="colorArea" x1="0" y1="0" x2="0" y2="1">
+                                       <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
+                                       <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                                    </linearGradient>
+                                 </defs>
+                                 <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.05} />
+                                 <XAxis dataKey="name" hide />
+                                 <YAxis hide domain={[0, 10]} />
+                                 <Tooltip 
+                                    contentStyle={{ borderRadius: '24px', background: 'rgba(255,255,255,0.95)', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', padding: '16px' }}
+                                    itemStyle={{ fontWeight: '900', color: '#4f46e5' }}
+                                 />
+                                 <Area type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={4} fillOpacity={1} fill="url(#colorArea)" />
+                              </AreaChart>
+                           </ResponsiveContainer>
+                         )}
                        </div>
                     </DashboardCard>
 
@@ -229,17 +236,19 @@ const Dashboard = () => {
                  <div className="glass p-10 rounded-[3.5rem] border-slate-100 dark:border-slate-800 shadow-2xl">
                     <h3 className="text-lg font-black italic mb-6">Recent Activity</h3>
                     <div className="space-y-6">
-                       {history.slice(0, 3).map((item, i) => (
+                       {[...history.map(s => ({ ...s, type: "scan" })), ...quizHistory.map(q => ({ ...q, type: "quiz" }))].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,4).map((item, i) => (
                          <div key={i} className="flex items-center space-x-4 group">
-                            <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                               <Sparkles size={16} className="text-indigo-500" />
-                            </div>
-                            <div className="flex-1 overflow-hidden">
-                               <p className="text-xs font-black truncate">{item.event} Analysis</p>
-                               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{new Date(item.date).toLocaleDateString()}</p>
-                            </div>
-                            <div className="text-sm font-black text-indigo-600">{item.aiResponse?.score || 8.2}</div>
-                         </div>
+                             <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform ${item.type === 'quiz' ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800' : 'bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800'}`}>
+                                {item.type === 'quiz' ? <Target size={16} className="text-purple-500" /> : <Sparkles size={16} className="text-indigo-500" />}
+                             </div>
+                             <div className="flex-1 overflow-hidden">
+                                <p className="text-xs font-black truncate">{item.type === 'quiz' ? `${item.topic} Quiz` : `${item.event} Analysis`}</p>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{new Date(item.date).toLocaleDateString()}</p>
+                             </div>
+                             <div className={`text-sm font-black ${item.type === 'quiz' ? 'text-purple-600' : 'text-indigo-600'}`}>
+                               {item.type === 'quiz' ? `${item.score}%` : (item.aiResponse?.score || 8.2)}
+                             </div>
+                          </div>
                        ))}
                        <button onClick={() => setActiveView('history')} className="w-full py-4 glass text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border-slate-100 dark:border-slate-800">
                           VIEW ALL HISTORY →

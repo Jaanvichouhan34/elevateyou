@@ -83,6 +83,10 @@ const EventPrep = () => {
   const [error, setError] = useState(null);
 
   const fetchAIGuide = async () => {
+    if (!token) {
+      setError('Please Login to unlock AI-personalized guide features! 🔐');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
