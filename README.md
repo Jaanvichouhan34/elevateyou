@@ -102,3 +102,4 @@ For an in-depth view of the system architecture, authentication flow, and databa
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 ..
+.
