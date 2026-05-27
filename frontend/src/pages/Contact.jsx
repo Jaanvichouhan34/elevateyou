@@ -57,26 +57,26 @@ const Contact = () => {
                   <ContactInfo
                      icon={<Mail />}
                      label="Email Me"
-                     value="jaanvichouhan18805@gmail.com"
-                     link="mailto:jaanvichouhan18805@gmail.com"
+                     value="ElevateU@gmail.com"
+                     link="mailto:ElevateU@gmail.com"
                   />
                   <ContactInfo
                      icon={<Globe />}
                      label="LinkedIn"
-                     value="Jaanvi Chouhan"
-                     link="https://www.linkedin.com/in/jaanvi-chouhan"
+                     value="ElevateU"
+                     link="https://www.linkedin.com/in/ElevateU"
                   />
                   <ContactInfo
                      icon={<Code />}
                      label="GitHub"
-                     value="Jaanvichouhan34"
-                     link="https://github.com/Jaanvichouhan34"
+                     value="ElevateU"
+                     link="https://github.com/ElevateU"
                   />
                   <ContactInfo
                      icon={<Camera />}
                      label="Instagram"
-                     value="@jaanvi_chouhan18"
-                     link="https://www.instagram.com/jaanvi_chouhan18"
+                     value="@ElevateU"
+                     link="https://www.instagram.com/ElevateU"
                   />
                </div>
             </div>
@@ -129,7 +129,7 @@ const Contact = () => {
                            <textarea
                               name="message"
                               className="w-full bg-slate-50 dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-3xl p-6 h-40 text-sm font-medium outline-none focus:border-indigo-500 transition-all shadow-inner resize-none"
-                              placeholder="Hello Jaanvi, I have a question about..."
+                              placeholder="Hello ElevateU, I have a question about..."
                               required
                            ></textarea>
                         </div>
