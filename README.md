@@ -183,18 +183,39 @@ npm run dev
 
 ---
 
-## 👩‍💻 Author
+## 👩‍💻 Authors
 
-<div align="center">
+<table align="center">
+<tr>
+<td align="center" width="33%">
 
-**Jaanvi Chouhan**
-*B.Tech CSE · Medi-Caps University, Indore*
+**Jaanvi Chouhan** *B.Tech CSE · Medi-Caps University, Indore*
 
 [![GitHub](https://img.shields.io/badge/GitHub-Jaanvichouhan34-181717?style=flat-square&logo=github)](https://github.com/Jaanvichouhan34)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-jaanvi--chouhan-0A66C2?style=flat-square&logo=linkedin)](https://linkedin.com/in/jaanvi-chouhan)
 [![Email](https://img.shields.io/badge/Email-jaanvichouhan18805@gmail.com-EA4335?style=flat-square&logo=gmail)](mailto:jaanvichouhan18805@gmail.com)
 
-</div>
+</td>
+<td align="center" width="33%">
+
+**Kamakshi Barskar** *B.Tech CSE · Medi-Caps University, Indore*
+
+[![GitHub](https://img.shields.io/badge/GitHub-kamakshi1210-181717?style=flat-square&logo=github)](https://github.com/kamakshi1210)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-kamakshi--barskar-0A66C2?style=flat-square&logo=linkedin)](https://www.linkedin.com/in/kamakshi-barskar)
+[![Email](https://img.shields.io/badge/Email-kamakshibarskarofficial@gmail.com-EA4335?style=flat-square&logo=gmail)](mailto:kamakshibarskarofficial@gmail.com)
+
+</td>
+<td align="center" width="33%">
+
+**Kanak Khandelwal** *B.Tech CSE · Medi-Caps University, Indore*
+
+[![GitHub](https://img.shields.io/badge/GitHub-Kanak172k5-181717?style=flat-square&logo=github)](https://github.com/Kanak172k5)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-0A66C2?style=flat-square&logo=linkedin)](https://www.linkedin.com/in/kanak-khandelwal-96b472310?utm_source=share_via&utm_content=profile&utm_medium=member_android)
+[![Email](https://img.shields.io/badge/Email-Khandelwalkanak160@gmail.com-EA4335?style=flat-square&logo=gmail)](mailto:Khandelwalkanak160@gmail.com)
+
+</td>
+</tr>
+</table>
 
 ---
 
