@@ -183,7 +183,6 @@ npm run dev
 
 ---
 
-## 👩‍💻 Authors
 
 <table align="center">
 <tr>
@@ -218,6 +217,7 @@ npm run dev
 </table>-->
 
 ---
+
 
 ## 📄 License
 
