@@ -4,7 +4,7 @@
 
 <br/>
 
-[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-ElevateU-a78bfa?style=for-the-badge)](https://elevateyou-five.vercel.app/)
+<!--  [![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-ElevateU-a78bfa?style=for-the-badge)](https://elevateyou-five.vercel.app/) -->
 [![Backend API](https://img.shields.io/badge/⚡%20Backend%20API-Live%20on%20Render-34d399?style=for-the-badge)](https://elevateu-backend-act6.onrender.com)
 [![License](https://img.shields.io/badge/License-MIT-60a5fa?style=for-the-badge)](LICENSE)
 
