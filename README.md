@@ -212,9 +212,11 @@ npm run dev
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-0A66C2?style=flat-square&logo=linkedin)](https://www.linkedin.com/in/kanak-khandelwal-96b472310?utm_source=share_via&utm_content=profile&utm_medium=member_android)
 [![Email](https://img.shields.io/badge/Email-Khandelwalkanak160@gmail.com-EA4335?style=flat-square&logo=gmail)](mailto:Khandelwalkanak160@gmail.com)
 
+
 </td>
+-->
 </tr>
-</table>-->
+</table>
 
 ---
 
