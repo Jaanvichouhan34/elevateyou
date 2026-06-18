@@ -198,7 +198,7 @@ npm run dev
 </td>
 <td align="center" width="33%">
 
-**Kamakshi Barskar** *B.Tech CSE · Medi-Caps University, Indore*
+<!-- **Kamakshi Barskar** *B.Tech CSE · Medi-Caps University, Indore*
 
 [![GitHub](https://img.shields.io/badge/GitHub-kamakshi1210-181717?style=flat-square&logo=github)](https://github.com/kamakshi1210)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-kamakshi--barskar-0A66C2?style=flat-square&logo=linkedin)](https://www.linkedin.com/in/kamakshi-barskar)
@@ -215,7 +215,7 @@ npm run dev
 
 </td>
 </tr>
-</table>
+</table>-->
 
 ---
 
