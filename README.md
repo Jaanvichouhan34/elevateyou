@@ -1,4 +1,4 @@
-....<div align="center">
+...<div align="center">
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=200&section=header&text=ElevateU&fontSize=80&fontColor=fff&animation=twinkling&fontAlignY=35&desc=Your%20Personalized%20Self-Improvement%20Hub&descAlignY=60&descSize=18" />
 
