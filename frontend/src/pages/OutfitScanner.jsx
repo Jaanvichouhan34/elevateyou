@@ -230,20 +230,20 @@ const OutfitScanner = () => {
 
         <div className="flex p-2 glass rounded-[2.5rem] shadow-2xl border-indigo-500/10">
           <button 
-            onClick={() => { setMode('upload'); stopCamera(); }} 
-            className={`px-8 py-3 rounded-[2rem] text-xs font-black transition-all flex items-center ${mode === 'upload' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-indigo-600'}`}
+            onClick={() => { setResult(null); setMode('upload'); stopCamera(); }} 
+            className={`px-8 py-3 rounded-[2rem] text-xs font-black transition-all flex items-center ${mode === 'upload' && !result ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-indigo-600'}`}
           >
             <Upload size={16} className="mr-2" /> Upload
           </button>
           <button 
-            onClick={startCamera} 
-            className={`px-8 py-3 rounded-[2rem] text-xs font-black transition-all flex items-center ${mode === 'camera' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-indigo-600'}`}
+            onClick={() => { setResult(null); startCamera(); }} 
+            className={`px-8 py-3 rounded-[2rem] text-xs font-black transition-all flex items-center ${mode === 'camera' && !result ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-indigo-600'}`}
           >
             <Camera size={16} className="mr-2" /> Live Cam
           </button>
           <button 
-            onClick={() => { setMode('text'); stopCamera(); }} 
-            className={`px-8 py-3 rounded-[2rem] text-xs font-black transition-all flex items-center ${mode === 'text' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-indigo-600'}`}
+            onClick={() => { setResult(null); setMode('text'); stopCamera(); }} 
+            className={`px-8 py-3 rounded-[2rem] text-xs font-black transition-all flex items-center ${mode === 'text' && !result ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-indigo-600'}`}
           >
             <Send size={16} className="mr-2" /> Text
           </button>
