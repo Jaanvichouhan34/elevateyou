@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare, Send, Bot, Zap, Brain, Sparkles, Target, Award,
   RefreshCw, ChevronRight, CheckCircle, TrendingUp, Trophy, Lock as LockIcon,
-  Unlock, Star, ChevronLeft, XCircle
+  Unlock, Star, ChevronLeft, XCircle, Mic, MicOff, Volume2, VolumeX
 } from 'lucide-react';
 import { quizData } from '../data/quizData';
 import { useAuth } from '../context/AuthContext';
@@ -91,11 +91,64 @@ const AITrainer = () => {
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef(null);
 
+  // Voice state
+  const [isRecording, setIsRecording] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [voiceSupport, setVoiceSupport] = useState(false);
+  const recognitionRef = useRef(null);
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      setVoiceSupport(true);
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      
+      recognitionRef.current.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(transcript);
+        setIsRecording(false);
+      };
+      
+      recognitionRef.current.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setIsRecording(false);
+      };
+      
+      recognitionRef.current.onend = () => {
+        setIsRecording(false);
+      };
+    }
+  }, []);
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      recognitionRef.current.stop();
+      setIsRecording(false);
+    } else {
+      recognitionRef.current.start();
+      setIsRecording(true);
+    }
+  };
+
+  const speakText = (text) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      window.speechSynthesis.speak(utterance);
+    }
+  };
 
   const [quizLoading, setQuizLoading] = useState(false);
 
@@ -745,8 +798,18 @@ const AITrainer = () => {
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-10 space-y-8 scroll-smooth">
                 {messages.map((m, i) => (
                   <motion.div initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} key={i} className={`flex ${m.role === 'assistant' ? 'justify-start' : 'justify-end'}`}>
-                    <div className={`max-w-[85%] p-6 rounded-[2.5rem] text-sm leading-relaxed shadow-sm ${m.role === 'assistant' ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-none' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/20 rounded-br-none font-medium'}`}>
+                    <div className={`max-w-[85%] p-6 rounded-[2.5rem] text-sm leading-relaxed shadow-sm relative ${m.role === 'assistant' ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-none' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/20 rounded-br-none font-medium'}`}>
                       {m.content}
+                      {m.role === 'assistant' && (
+                        <button
+                          type="button"
+                          onClick={() => speakText(m.content)}
+                          className="absolute bottom-2 right-4 p-1.5 text-slate-400 hover:text-indigo-600 transition-colors bg-white/50 dark:bg-slate-700/50 rounded-full"
+                          title="Speak message"
+                        >
+                          <Volume2 size={14} />
+                        </button>
+                      )}
                     </div>
                   </motion.div>
                 ))}
@@ -768,11 +831,23 @@ const AITrainer = () => {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Ask the coach anything..."
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] px-10 py-6 pr-20 text-sm outline-none shadow-sm focus:ring-4 ring-indigo-500/10 focus:border-indigo-500/40 transition-all"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] px-10 py-6 pr-32 text-sm outline-none shadow-sm focus:ring-4 ring-indigo-500/10 focus:border-indigo-500/40 transition-all"
                   />
-                  <button type="submit" disabled={isTyping} className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-500/20 active:scale-90 flex items-center justify-center disabled:opacity-50">
-                    <Send size={22} />
-                  </button>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                    {voiceSupport && (
+                      <button
+                        type="button"
+                        onClick={toggleRecording}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                        title={isRecording ? "Stop recording" : "Start recording"}
+                      >
+                        {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
+                      </button>
+                    )}
+                    <button type="submit" disabled={isTyping} className="w-10 h-10 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 active:scale-90 flex items-center justify-center disabled:opacity-50">
+                      <Send size={18} />
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>

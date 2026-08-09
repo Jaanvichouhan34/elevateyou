@@ -24,6 +24,9 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState('overview'); // overview, history, settings
   const [historyFilter, setHistoryFilter] = useState('ALL');
+  const [insights, setInsights] = useState(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [chartMetric, setChartMetric] = useState('quiz'); // quiz, scan
 
   const fetchData = async () => {
     setLoading(true);
@@ -61,6 +64,20 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setQuizHistory(progressRes.data?.quizHistory || []);
+
+      // Fetch AI Insights
+      setInsightsLoading(true);
+      try {
+        const insightsRes = await axios.get(`${API_BASE_URL}/api/insights/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setInsights(insightsRes.data);
+      } catch (e) {
+        console.error('Insights fetch error:', e);
+      } finally {
+        setInsightsLoading(false);
+      }
+
     } catch (err) {
       console.error('Fetch error:', err);
       setUser(defaultUser);
@@ -99,10 +116,46 @@ const Dashboard = () => {
   };
 
   if (loading || !user) return (
-    <div className="h-[80vh] flex flex-col items-center justify-center space-y-4">
-        <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin shadow-2xl"></div>
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-indigo-500 animate-pulse">Syncing Dashboard...</p>
-     </div>
+    <div className="max-w-7xl mx-auto px-4 py-12 pb-32">
+      {/* Top Welcome Bar Skeleton */}
+      <div className="flex flex-col md:flex-row items-center justify-between mb-16 gap-8">
+        <div className="flex items-center space-x-6">
+           <div className="w-20 h-20 rounded-[2rem] skeleton" />
+           <div className="space-y-2">
+              <div className="w-24 h-4 skeleton rounded-full" />
+              <div className="w-48 h-8 skeleton rounded-full" />
+           </div>
+        </div>
+        <div className="w-64 h-12 rounded-[2rem] skeleton" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+         {/* Main Area Skeleton */}
+         <div className="lg:col-span-8 space-y-8">
+            {/* Progress Card Skeleton */}
+            <div className="h-64 rounded-[3.5rem] skeleton" />
+            
+            {/* Insights Skeleton */}
+            <div className="h-48 rounded-[3.5rem] skeleton" />
+            
+            {/* Charts Skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="h-[300px] rounded-[3.5rem] skeleton" />
+               <div className="space-y-8">
+                  <div className="h-24 rounded-[2rem] skeleton" />
+                  <div className="h-24 rounded-[2rem] skeleton" />
+                  <div className="h-24 rounded-[2rem] skeleton" />
+               </div>
+            </div>
+         </div>
+
+         {/* Sidebar Skeleton */}
+         <div className="lg:col-span-4 space-y-8">
+            <div className="h-64 rounded-[3.5rem] skeleton" />
+            <div className="h-96 rounded-[3.5rem] skeleton" />
+         </div>
+      </div>
+    </div>
   );
 
   return (
@@ -186,13 +239,70 @@ const Dashboard = () => {
                     </div>
                  </div>
 
+                  {/* AI Insights Card */}
+                  <div className="glass p-10 rounded-[3.5rem] border-indigo-500/5 shadow-2xl relative overflow-hidden group mb-8">
+                     <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none" />
+                     <div className="flex items-center justify-between mb-6">
+                        <div>
+                           <h3 className="text-sm font-black uppercase tracking-[0.3em] text-cyan-500 mb-2">AI Insights</h3>
+                           <h2 className="text-3xl font-black tracking-tighter italic">Personalized Coaching</h2>
+                        </div>
+                        <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-500">
+                           <Sparkles size={24} />
+                        </div>
+                     </div>
+                     
+                     {insightsLoading ? (
+                        <div className="space-y-4">
+                           <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded-full w-3/4 animate-pulse" />
+                           <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded-full w-1/2 animate-pulse" />
+                        </div>
+                     ) : (
+                        <div className="space-y-4">
+                           <p className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed">
+                              {insights?.summary || "Take more quizzes to unlock deep insights."}
+                           </p>
+                           {insights?.tips?.length > 0 && (
+                              <div className="space-y-2 mt-4">
+                                 {insights.tips.map((tip, idx) => (
+                                    <div key={idx} className="flex items-start gap-3">
+                                       <div className="w-5 h-5 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-500 text-xs shrink-0 mt-0.5">
+                                          {idx + 1}
+                                       </div>
+                                       <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{tip}</p>
+                                    </div>
+                                 ))}
+                              </div>
+                           )}
+                        </div>
+                     )}
+                  </div>
+
                  {/* Charts & Stats */}
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <DashboardCard title="Analytic Growth" icon={<TrendingUp size={18} />}>
-                       <div className="h-[300px] w-full">
+                       <div className="flex justify-end mb-4 gap-2">
+                          <button 
+                             onClick={() => setChartMetric('quiz')} 
+                             className={`text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full transition-all ${chartMetric === 'quiz' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'glass text-slate-400'}`}
+                          >
+                             Quizzes
+                          </button>
+                          <button 
+                             onClick={() => setChartMetric('scan')} 
+                             className={`text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full transition-all ${chartMetric === 'scan' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'glass text-slate-400'}`}
+                          >
+                             Scans
+                          </button>
+                       </div>
+                       <div className="h-[250px] w-full">
                          {chartReady && (
-                                                       <ResponsiveContainer width="100%" height="100%" >
-                              <AreaChart data={quizHistory.length > 0 ? quizHistory.map(q => ({ name: new Date(q.date).toLocaleDateString(), score: q.score })) : [{name: 'Start', score: 0}]}>
+                            <ResponsiveContainer width="100%" height="100%" >
+                              <AreaChart data={
+                                 chartMetric === 'quiz' 
+                                    ? (quizHistory.length > 0 ? quizHistory.map(q => ({ name: new Date(q.date).toLocaleDateString(), score: q.score })) : [{name: 'Start', score: 0}])
+                                    : (history.length > 0 ? history.map(s => ({ name: new Date(s.date).toLocaleDateString(), score: s.aiResponse?.score || 8.2 })) : [{name: 'Start', score: 0}])
+                              }>
                                  <defs>
                                     <linearGradient id="colorArea" x1="0" y1="0" x2="0" y2="1">
                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>

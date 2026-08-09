@@ -9,6 +9,7 @@ const outfitRoutes = require('./routes/outfit');
 const eventRoutes = require('./routes/event');
 const trainerRoutes = require('./routes/trainer');
 const profileRoutes = require('./routes/profile');
+const insightsRoutes = require('./routes/insights');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -40,6 +41,7 @@ app.use('/api/outfit', outfitRoutes);
 app.use('/api/event', eventRoutes);
 app.use('/api/trainer', trainerRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/insights', insightsRoutes);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
