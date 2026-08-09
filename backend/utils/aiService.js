@@ -9,7 +9,7 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
  */
 async function analyzeImage(imageBase64, prompt) {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
     const base64Data = imageBase64.split(',')[1];
     const mimeType = imageBase64.split(',')[0].split(':')[1].split(';')[0];
 
