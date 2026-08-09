@@ -74,7 +74,7 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="pt-10 border-t border-slate-200 dark:border-slate-800/50 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center text-xs font-bold text-slate-400">
-            © 2026 ElevateU. Made with <Heart size={14} className="mx-1.5 text-red-500 fill-red-500 animate-pulse" /> by Jaanvi Chouhan
+            © 2026 ElevateU. All rights reserved.
           </div>
           <div className="flex gap-8">
             <Link to="/privacy" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-indigo-500 transition-colors">Privacy</Link>
