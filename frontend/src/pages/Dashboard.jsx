@@ -337,7 +337,7 @@ const Dashboard = () => {
 
               {/* Sidebar: Quick Actions & Recent */}
               <div className="lg:col-span-4 space-y-8">
-                 <div className="glass p-10 rounded-[3.5rem] border-indigo-500/5 shadow-2xl bg-indigo-600 text-white relative overflow-hidden group">
+                 <div className="p-10 rounded-[3.5rem] shadow-2xl bg-gradient-to-br from-indigo-600 to-violet-700 text-white relative overflow-hidden group">
                     <div className="absolute top-[-20px] left-[-20px] w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
                     <h3 className="text-xl font-black italic mb-8">Elevate Your Skill</h3>
                     <div className="space-y-4">

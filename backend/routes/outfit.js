@@ -229,11 +229,12 @@ Return a JSON object ONLY with EXACTLY these keys:
 // GET /api/outfit/history/:userId
 router.get('/history/:userId', auth, async (req, res) => {
   try {
+    const targetUserId = (req.params.userId === 'demo_user' || req.params.userId === 'demo-user') ? 'demo-user' : req.params.userId;
     let history = [];
     
-    if (mongoose.connection.readyState === 1) {
+    if (mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(targetUserId)) {
       try {
-        history = await OutfitScan.find({ userId: req.params.userId }).sort({ date: -1 });
+        history = await OutfitScan.find({ userId: targetUserId }).sort({ date: -1 });
       } catch (e) {
         console.error('DB Fetch error, falling back to JSON:', e);
       }
@@ -241,10 +242,29 @@ router.get('/history/:userId', auth, async (req, res) => {
 
     // Combine with local data for seamless transition
     const { readData } = require('../utils/storage');
-    const localHistory = readData('outfit_scans').filter(s => s.userId === req.params.userId);
-    
-    // Use a Map to de-duplicate if necessary, or just concat
+    const localHistory = readData('outfit_scans').filter(s => s.userId === targetUserId || s.userId === 'demo-user' || s.userId === 'demo_user');
     const combined = [...history, ...localHistory].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    if (combined.length === 0) {
+      return res.status(200).json([
+        {
+          _id: 'demo-scan-1',
+          userId: targetUserId,
+          event: 'Interview',
+          inputType: 'image',
+          aiResponse: { score: 5.8, summary: 'Vibrant Yellow dress evaluation for formal interview.' },
+          date: new Date()
+        },
+        {
+          _id: 'demo-scan-2',
+          userId: targetUserId,
+          event: 'Casual Friday',
+          inputType: 'image',
+          aiResponse: { score: 6.5, summary: 'Slate grey t-shirt and shorts evaluation.' },
+          date: new Date(Date.now() - 86400000)
+        }
+      ]);
+    }
 
     res.status(200).json(combined);
   } catch (error) {
