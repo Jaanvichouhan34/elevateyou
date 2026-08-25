@@ -4,7 +4,6 @@
 
 <br/>
 
-<!--  [![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-ElevateU-a78bfa?style=for-the-badge)](https://elevateyou-five.vercel.app/) -->
 [![Backend API](https://img.shields.io/badge/⚡%20Backend%20API-Live%20on%20Render-34d399?style=for-the-badge)](https://elevateu-backend-act6.onrender.com)
 [![License](https://img.shields.io/badge/License-MIT-60a5fa?style=for-the-badge)](LICENSE)
 
@@ -20,7 +19,7 @@
 
 <br/>
 
-> **ElevateU** is a comprehensive full-stack self-advancement platform that helps you prepare for professional environments, optimize communication skills, and bring out your best self — powered by **Google Gemini Vision** and **Groq Llama 3.3**.
+> **ElevateU** is a comprehensive full-stack self-advancement platform that helps you prepare for professional environments, optimize communication skills, and bring out your best self — powered by **Google Gemini Vision**, **Groq AI**, and **Real-Time Pixel Analysis**.
 
 <br/>
 
@@ -34,16 +33,18 @@
 <tr>
 <td width="50%">
 
-### 📸 AI Outfit Scanner
-- **Live Camera Capture** — Snapshot your outfit directly from the browser
-- **Visual Analysis** — Powered by Gemini 1.5 Flash for expert style feedback
-- **Text Mode** — Describe your outfit if you don't have a photo
+### 📸 AI Outfit Scanner & Style Intelligence
+- **Live Camera Capture with Countdown Timer** — Snap full-body outfit photos with built-in 3s, 5s, and 10s step-back timers
+- **Pixel-Level Color Palette Extraction** — Real RGBA JPEG/PNG color sampling (`jpeg-js`, `pngjs`) with human skin-tone filtering
+- **Garment Silhouette & Leg Exposure Detector** — Auto-detects casual shorts, loungewear, or formal suits and enforces realistic event formality rules
+- **Dynamic Formality Scoring (3.5 – 9.5)** — Real-time event-specific ratings, hex swatches, tone badges, and tailored AI feedback
+- **Text Mode** — Describe your outfit for instant AI fashion critique
 
 </td>
 <td width="50%">
 
 ### 💬 AI Communication Trainer
-- **AI Chatbot** — Practice interviews, grammar & rephrasing with Llama 3.3 70B
+- **AI Chatbot** — Practice interviews, grammar & rephrasing with Groq LLMs
 - **Dynamic Feedback** — Real-time professional critique of your responses
 - **Topic-based Practice** — Tailored coaching per communication goal
 
@@ -61,7 +62,7 @@
 <td width="50%">
 
 ### 📅 Event Prep Guides
-- **30+ Life Scenarios** — Built-in expertise for real-world events
+- **30+ Life Scenarios** — Built-in expertise for real-world events (Interviews, Vivas, Presentations, Dates, Meetings)
 - **AI Personalization** — Guides tailored to your specific event and role
 - **Rich Structured Data** — Actionable, step-by-step preparation plans
 
@@ -78,9 +79,9 @@
 | **Frontend** | React 18 + Vite, Tailwind CSS v4, Framer Motion, Lucide React |
 | **State Management** | Context API (Auth + Theme) |
 | **Backend** | Node.js, Express.js |
+| **Computer Vision** | `jpeg-js`, `pngjs` (RGBA Pixel Decoding & Color Palette Extraction) |
 | **Database** | MongoDB Atlas + Mongoose |
-| **AI — Vision** | Google Gemini 1.5 Flash |
-| **AI — Language** | Groq API (Llama 3.3 70B) |
+| **AI — Language & Vision** | Groq API (`groq/compound-mini`), Google Gemini Vision API |
 | **Auth** | JWT (JSON Web Tokens) |
 | **Deployment** | Vercel (Frontend) · Render (Backend) |
 
@@ -93,13 +94,14 @@ ElevateU/
 ├── frontend/                  # React + Vite application
 │   ├── src/
 │   │   ├── components/        # Reusable UI components
-│   │   ├── pages/             # Route-level pages
+│   │   ├── pages/             # Route-level pages (OutfitScanner, EventPrep, AITrainer, etc.)
 │   │   ├── context/           # Auth & Theme providers
-│   │   └── config.js          # API base URL config
+│   │   └── api/config.js      # API base URL config
 │   └── vite.config.js
 │
 ├── backend/                   # Node.js + Express API
-│   ├── routes/                # 6 route files (auth, outfit, quiz, etc.)
+│   ├── routes/                # Route controllers (outfit, event, trainer, auth, etc.)
+│   ├── utils/                 # Image analyzer (RGBA pixel decoder), AI service, storage
 │   ├── models/                # Mongoose schemas
 │   ├── middleware/            # JWT auth middleware
 │   └── server.js
@@ -117,8 +119,8 @@ ElevateU/
 
 - Node.js `v18+`
 - MongoDB Atlas account
-- Google Gemini API key
 - Groq API key
+- Google Gemini API key
 
 ### 1. Clone the Repository
 
@@ -140,14 +142,14 @@ Create a `.env` file inside `backend/`:
 PORT=5000
 MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
-GEMINI_API_KEY=your_google_gemini_key
 GROQ_API_KEY=your_groq_api_key
+GEMINI_API_KEY=your_google_gemini_key
 ```
 
 Start the server:
 
 ```bash
-npm run dev
+npm start
 ```
 
 ### 3. Setup Frontend
@@ -157,8 +159,6 @@ cd ../frontend
 npm install
 npm run dev
 ```
-
-> Make sure `config.js` or `.env` in frontend points to `http://localhost:5000` for local development.
 
 ---
 
@@ -170,36 +170,6 @@ npm run dev
 | Backend API | Render | ✅ [Live](https://elevateu-backend-act6.onrender.com) |
 
 ---
-
-## 🔐 Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `PORT` | Backend server port |
-| `MONGODB_URI` | MongoDB Atlas connection string |
-| `JWT_SECRET` | Secret key for JWT signing |
-| `GEMINI_API_KEY` | Google Gemini API key (Vision) |
-| `GROQ_API_KEY` | Groq API key (Llama 3.3 70B) |
-
----
-
-
-<table align="center">
-<tr>
-<td align="center" width="33%">
-
-**Jaanvi Chouhan** *B.Tech CSE · Medi-Caps University, Indore*
-
-[![GitHub](https://img.shields.io/badge/GitHub-Jaanvichouhan34-181717?style=flat-square&logo=github)](https://github.com/Jaanvichouhan34)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-jaanvi--chouhan-0A66C2?style=flat-square&logo=linkedin)](https://linkedin.com/in/jaanvi-chouhan)
-[![Email](https://img.shields.io/badge/Email-jaanvichouhan18805@gmail.com-EA4335?style=flat-square&logo=gmail)](mailto:jaanvichouhan18805@gmail.com)
-
-</td>
-</tr>
-</table>
-
----
-
 
 ## 📄 License
 
