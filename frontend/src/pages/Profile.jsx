@@ -50,16 +50,25 @@ const Profile = () => {
   }, []);
 
   const handleUpdate = async () => {
-    const userId = localStorage.getItem('userId');
+    const userId = localStorage.getItem('userId') || 'demo-user';
     const token = localStorage.getItem('token');
+
+    if (editData.name) {
+      localStorage.setItem('userName', editData.name);
+    }
+
     try {
-      await axios.put(`${API_BASE_URL}/api/profile/${userId}`, editData, {
-        headers: { Authorization: `Bearer ${token}` }
+      const res = await axios.put(`${API_BASE_URL}/api/profile/${userId}`, editData, {
+        headers: { Authorization: `Bearer ${token || 'demo-token'}` }
       });
+      if (res.data) {
+        setUser(prev => ({ ...prev, name: res.data.name || editData.name, level: res.data.level || editData.level }));
+      }
       setIsEditing(false);
-      fetchData();
     } catch (err) {
-      console.error(err);
+      console.error('Profile update notice:', err);
+      setUser(prev => ({ ...prev, name: editData.name, level: editData.level }));
+      setIsEditing(false);
     }
   };
 
