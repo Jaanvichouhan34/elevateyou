@@ -9,9 +9,9 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
  */
 async function analyzeImage(imageBase64, prompt) {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
-    const base64Data = imageBase64.split(',')[1];
-    const mimeType = imageBase64.split(',')[0].split(':')[1].split(';')[0];
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+    const mimeType = imageBase64.includes(',') ? imageBase64.split(',')[0].split(':')[1].split(';')[0] : 'image/jpeg';
 
     const result = await model.generateContent([
       prompt,
@@ -26,7 +26,7 @@ async function analyzeImage(imageBase64, prompt) {
     const response = await result.response;
     return response.text();
   } catch (error) {
-    console.error('Gemini Image Analysis Error:', error);
+    console.error('Gemini Image Analysis Error:', error.message);
     throw error;
   }
 }
@@ -50,9 +50,9 @@ async function generateText(prompt, systemPrompt = '', history = []) {
 
     const completion = await groq.chat.completions.create({
       messages: messages,
-      model: 'llama-3.3-70b-versatile',
+      model: 'groq/compound-mini',
       temperature: 0.7,
-      max_tokens: 2048,
+      max_tokens: 1024,
     });
 
     return completion.choices[0].message.content;

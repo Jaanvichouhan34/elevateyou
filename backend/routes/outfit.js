@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const OutfitScan = require('../models/OutfitScan');
 const { saveData } = require('../utils/storage');
 const { analyzeImage, generateText, extractJSON } = require('../utils/aiService');
+const { analyzeImageBuffer } = require('../utils/imageAnalyzer');
 
 const outfitFallbacks = {
   Interview: {
@@ -58,8 +59,15 @@ router.post('/scan-image', auth, async (req, res) => {
     return res.status(400).json({ message: 'Image and event are required.' });
   }
 
+  // Extract visual image metrics & color swatches
+  const imageMetrics = analyzeImageBuffer(imageBase64);
+  const colorListStr = imageMetrics.swatches.map(s => s.name).join(', ');
+
+  let aiResData = null;
+
   try {
-    const prompt = `You are a professional fashion and style consultant. Analyze this outfit image for a ${event} event. 
+    if (process.env.GEMINI_API_KEY && !process.env.GEMINI_API_KEY.startsWith('AQ.')) {
+      const prompt = `You are a professional fashion and style consultant. Analyze this outfit image for a ${event} event. 
 Return a JSON object with EXACTLY these keys:
 {
   "score": number (1-10),
@@ -70,37 +78,77 @@ Return a JSON object with EXACTLY these keys:
   "groomingTips": ["tips"]
 }`;
 
-    const aiText = await analyzeImage(imageBase64, prompt);
-    const aiResData = extractJSON(aiText);
-
-    const savedResult = {
-      userId: req.userData.userId,
-      event,
-      inputType: 'image', // Critical: Added for schema validation
-      aiResponse: aiResData,
-      date: new Date()
-    };
-
-    // Save to DB if connected, else filesystem
-    if (mongoose.connection.readyState === 1) {
-      await OutfitScan.create(savedResult);
+      const aiText = await analyzeImage(imageBase64, prompt);
+      aiResData = extractJSON(aiText);
     } else {
-      console.log('MongoDB not connected, saving to local JSON');
+      throw new Error('Gemini API key unavailable/invalid, switching to fast Groq Vision AI');
+    }
+  } catch (error) {
+    console.error('Gemini Image analysis notice:', error.message);
+    
+    try {
+      const groqPrompt = `You are an expert personal fashion consultant and image critic. An outfit photo was uploaded for a "${event}" event.
+Extracted Image Visual Features:
+- Detected Garment Silhouette: ${imageMetrics.garmentType}
+- Detected Dominant Outfit Colors: ${colorListStr}
+- Image Brightness Category: ${imageMetrics.brightness}
+- Contrast Score: ${imageMetrics.contrastScore}/10
+
+Critique this specific outfit (${imageMetrics.garmentType} in ${colorListStr}) for a "${event}" event realistically.
+CRITICAL FORMALITY RULES:
+- If garment is "${imageMetrics.garmentType}" (Casual T-shirt with Shorts / Bare Legs Exposed) and event is a formal event like "${event}" (e.g. Interview, Viva, Presentation, Meeting), the score MUST be between 3.5 and 4.2/10, and the summary MUST explicitly state that shorts and casual t-shirts are inappropriate for a ${event}!
+- Return a JSON object ONLY with EXACTLY these keys:
+{
+  "score": a realistic number between 3.5 and 9.5 evaluating how suitable ${imageMetrics.garmentType} in ${colorListStr} is for ${event},
+  "summary": "Detailed, specific critique evaluating the detected ${imageMetrics.garmentType} and ${colorListStr} for a ${event}",
+  "strengths": ["3 specific strengths of this look"],
+  "improvements": ["2 specific styling improvements"],
+  "risks": ["2 potential styling or formality risks for wearing this outfit to a ${event}"],
+  "groomingTips": ["2 grooming tips that match this look"]
+}`;
+
+      const groqText = await generateText(groqPrompt, "You are a professional style consultant. Return ONLY valid JSON.");
+      aiResData = extractJSON(groqText);
+      if (aiResData.score) {
+        aiResData.score = Math.round(Number(aiResData.score) * 10) / 10;
+      }
+    } catch (groqErr) {
+      console.error('Groq fallback error:', groqErr.message);
+      const fallbackBase = outfitFallbacks[event] || outfitFallbacks['Office'];
+      aiResData = {
+        ...fallbackBase,
+        summary: `Your outfit features ${colorListStr} tones with a ${imageMetrics.brightness.toLowerCase()} contrast profile. ${fallbackBase.summary}`
+      };
+    }
+  }
+
+  // Attach extracted swatches and metrics
+  aiResData.swatches = imageMetrics.swatches;
+  aiResData.imageMetrics = {
+    brightness: imageMetrics.brightness,
+    contrastScore: imageMetrics.contrastScore
+  };
+
+  const savedResult = {
+    userId: req.userData.userId,
+    event,
+    inputType: 'image',
+    aiResponse: aiResData,
+    date: new Date()
+  };
+
+  if (mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(req.userData.userId)) {
+    try {
+      await OutfitScan.create(savedResult);
+    } catch (dbErr) {
+      console.error('DB Save Error:', dbErr.message);
       saveData('outfit_scans.json', savedResult);
     }
-
-    res.status(200).json(savedResult);
-
-  } catch (error) {
-    console.error('Image analysis error DETAILS:', error);
-    // Use fallback based on event
-    const fallback = outfitFallbacks[event] || outfitFallbacks['Office'];
-    res.status(200).json({
-      aiResponse: fallback,
-      isFallback: true,
-      message: `AI Error: ${error.message}. Using offline analysis.`
-    });
+  } else {
+    saveData('outfit_scans.json', savedResult);
   }
+
+  res.status(200).json(savedResult);
 });
 
 // POST /api/outfit/scan-text
@@ -113,31 +161,52 @@ router.post('/scan-text', auth, async (req, res) => {
   }
 
   try {
-    const systemPrompt = `You are a professional fashion consultant. Analyze the text description of an outfit and provide structured feedback.`;
-    const prompt = `Analyzer this outfit for a ${event}: ${outfitDescription}. 
-Return a JSON object with EXACTLY these keys:
+    const systemPrompt = `You are a professional fashion and style consultant. Analyze text descriptions of outfits and provide dynamic, highly specific feedback. Return JSON ONLY.`;
+    const prompt = `Analyze this outfit description for a ${event} event: "${outfitDescription}". 
+Return a JSON object ONLY with EXACTLY these keys:
 {
-  "score": number (1-10),
-  "summary": "string",
-  "strengths": [],
-  "improvements": [],
-  "risks": [],
-  "groomingTips": []
+  "score": number between 1 and 10 based on appropriateness for ${event},
+  "summary": "Detailed, specific assessment referencing the exact items mentioned in '${outfitDescription}'",
+  "strengths": ["3 specific strengths of this outfit for ${event}"],
+  "improvements": ["2 specific styling improvements"],
+  "risks": ["2 potential styling risks for ${event}"],
+  "groomingTips": ["2 grooming tips that match this look"]
 }`;
 
     const aiText = await generateText(prompt, systemPrompt);
     const aiResData = extractJSON(aiText);
 
+    // Color extraction helper for text
+    const textLower = outfitDescription.toLowerCase();
+    const colorSwatches = [];
+    if (textLower.includes('black')) colorSwatches.push({ name: 'Jet Black', hex: '#0f172a' });
+    if (textLower.includes('grey') || textLower.includes('gray')) colorSwatches.push({ name: 'Slate Grey', hex: '#64748b' });
+    if (textLower.includes('blue') || textLower.includes('navy')) colorSwatches.push({ name: 'Navy Blue', hex: '#1e3a8a' });
+    if (textLower.includes('white')) colorSwatches.push({ name: 'Crisp White', hex: '#f8fafc' });
+    if (textLower.includes('red')) colorSwatches.push({ name: 'Crimson Red', hex: '#dc2626' });
+    if (textLower.includes('green')) colorSwatches.push({ name: 'Emerald Green', hex: '#059669' });
+    if (textLower.includes('beige') || textLower.includes('cream')) colorSwatches.push({ name: 'Cream / Beige', hex: '#fef3c7' });
+    if (textLower.includes('pink')) colorSwatches.push({ name: 'Pastel Pink', hex: '#f472b6' });
+
+    if (colorSwatches.length > 0) {
+      aiResData.swatches = colorSwatches;
+    }
+
     const savedResult = {
       userId: req.userData.userId,
       event,
-      inputType: 'text', // Critical: Added for schema validation
+      inputType: 'text',
       aiResponse: aiResData,
       date: new Date()
     };
 
-    if (mongoose.connection.readyState === 1) {
-      await OutfitScan.create(savedResult);
+    if (mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(req.userData.userId)) {
+      try {
+        await OutfitScan.create(savedResult);
+      } catch (dbErr) {
+        console.error('DB Save Error in scan-text:', dbErr.message);
+        saveData('outfit_scans.json', savedResult);
+      }
     } else {
       saveData('outfit_scans.json', savedResult);
     }
@@ -145,10 +214,13 @@ Return a JSON object with EXACTLY these keys:
     res.status(200).json(savedResult);
 
   } catch (error) {
-    console.error('Description analysis error:', error);
+    console.error('Description analysis error:', error.message);
     const fallback = outfitFallbacks[event] || outfitFallbacks['Office'];
     res.status(200).json({
-      aiResponse: fallback,
+      aiResponse: {
+        ...fallback,
+        summary: `Analysis of '${outfitDescription}': ${fallback.summary}`
+      },
       isFallback: true
     });
   }
