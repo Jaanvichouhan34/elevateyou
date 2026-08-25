@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Camera, Upload, Send, Sparkles, CheckCircle2, XCircle, Info, RefreshCw, Search, Trophy, Lightbulb, Target, AlertCircle, StopCircle, Zap, Lock as LockIcon } from 'lucide-react';
+import { Camera, Upload, Send, Sparkles, CheckCircle2, XCircle, Info, RefreshCw, Search, Trophy, Lightbulb, Target, AlertCircle, StopCircle, Zap, Lock as LockIcon, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../api/config';
 
@@ -18,6 +18,12 @@ const OutfitScanner = () => {
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [guestScans, setGuestScans] = useState(parseInt(localStorage.getItem('guest_scans_count') || '0'));
   const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // Camera & Timer state
+  const [selectedTimer, setSelectedTimer] = useState(0); // 0, 3, 5, 10
+  const [countdown, setCountdown] = useState(null);
+  const [isCountingDown, setIsCountingDown] = useState(false);
+  const countdownRef = useRef(null);
   
   // Camera refs and state
   const videoRef = useRef(null);
@@ -69,10 +75,40 @@ const OutfitScanner = () => {
   };
 
   const stopCamera = () => {
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+    }
+    setCountdown(null);
+    setIsCountingDown(false);
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
     }
+  };
+
+  const handleShutterClick = () => {
+    if (isCountingDown) return;
+
+    if (selectedTimer === 0) {
+      capturePhoto();
+      return;
+    }
+
+    setIsCountingDown(true);
+    setCountdown(selectedTimer);
+
+    let current = selectedTimer;
+    countdownRef.current = setInterval(() => {
+      current -= 1;
+      if (current > 0) {
+        setCountdown(current);
+      } else {
+        clearInterval(countdownRef.current);
+        setCountdown(null);
+        setIsCountingDown(false);
+        capturePhoto();
+      }
+    }, 1000);
   };
 
   const capturePhoto = () => {
@@ -178,6 +214,8 @@ const OutfitScanner = () => {
           improvements: ai.improvements || [],
           risks: ai.risks || ai.notSuitable || [],
           groomingTips: ai.groomingTips || [],
+          swatches: ai.swatches || [],
+          imageMetrics: ai.imageMetrics || null,
           isFallback: ai.isFallback || retryData.isFallback
         });
         return;
@@ -196,6 +234,8 @@ const OutfitScanner = () => {
         improvements: ai.improvements || [],
         risks: ai.risks || ai.notSuitable || [],
         groomingTips: ai.groomingTips || [],
+        swatches: ai.swatches || [],
+        imageMetrics: ai.imageMetrics || null,
         isFallback: ai.isFallback || data.isFallback
       });
     } catch (err) {
@@ -318,12 +358,57 @@ const OutfitScanner = () => {
                           playsInline 
                           className="w-full h-full object-cover"
                         />
-                        <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-6">
+
+                        {/* Top Timer Selector */}
+                        <div className="absolute top-6 left-0 right-0 flex justify-center items-center gap-2 z-20">
+                          <div className="flex p-1.5 rounded-full bg-slate-950/70 border border-white/20 backdrop-blur-md shadow-2xl">
+                            {[0, 3, 5, 10].map(sec => (
+                              <button
+                                key={sec}
+                                disabled={isCountingDown}
+                                onClick={() => setSelectedTimer(sec)}
+                                className={`px-4 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-1.5 ${selectedTimer === sec ? 'bg-indigo-600 text-white shadow-lg scale-105' : 'text-slate-300 hover:text-white'}`}
+                              >
+                                <Clock size={12} />
+                                <span>{sec === 0 ? 'Instant' : `${sec}s Timer`}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Countdown Animated Overlay */}
+                        <AnimatePresence>
+                          {countdown !== null && (
+                            <motion.div
+                              key={countdown}
+                              initial={{ scale: 0.5, opacity: 0 }}
+                              animate={{ scale: 1.2, opacity: 1 }}
+                              exit={{ scale: 1.8, opacity: 0 }}
+                              transition={{ duration: 0.4 }}
+                              className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/50 backdrop-blur-sm z-30"
+                            >
+                              <div className="w-28 h-28 rounded-full bg-indigo-600/90 text-white flex items-center justify-center text-5xl font-black shadow-2xl border-4 border-white/40 mb-4 animate-pulse">
+                                {countdown}
+                              </div>
+                              <span className="text-white text-xs font-black uppercase tracking-[0.3em] bg-indigo-600/60 px-4 py-1.5 rounded-full border border-white/20">
+                                Step back for full outfit! 📸
+                              </span>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-6 z-20">
                           <button 
-                            onClick={capturePhoto}
-                            className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-2xl hover:scale-110 transition-all group/shutter"
+                            onClick={handleShutterClick}
+                            disabled={isCountingDown}
+                            title={selectedTimer > 0 ? `Start ${selectedTimer}s countdown` : 'Snap Photo'}
+                            className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all group/shutter relative"
                           >
-                            <div className="w-12 h-12 rounded-full border-4 border-slate-900 group-hover:scale-90 transition-all" />
+                            <div className="w-12 h-12 rounded-full border-4 border-slate-900 group-hover:scale-90 transition-all flex items-center justify-center">
+                              {selectedTimer > 0 && (
+                                <span className="text-[10px] font-black text-slate-900">{selectedTimer}s</span>
+                              )}
+                            </div>
                           </button>
                           <button 
                             onClick={stopCamera}
@@ -333,7 +418,7 @@ const OutfitScanner = () => {
                           </button>
                         </div>
                         {cameraError && (
-                          <div className="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center p-10 text-center">
+                          <div className="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center p-10 text-center z-30">
                             <XCircle size={48} className="text-red-500 mb-4" />
                             <p className="text-white font-black">{cameraError}</p>
                             <button onClick={() => setMode('upload')} className="mt-6 px-10 py-3 bg-indigo-600 text-white rounded-full font-black text-xs">Switch to Upload</button>
@@ -436,6 +521,49 @@ const OutfitScanner = () => {
                 </div>
               </div>
             </div>
+
+            {/* Extracted Color Swatches & Contrast Card */}
+            {result.swatches && result.swatches.length > 0 && (
+              <div className="glass rounded-[3rem] p-8 border-indigo-500/10 shadow-xl space-y-6">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-600/10 text-indigo-600 flex items-center justify-center font-black">
+                      🎨
+                    </div>
+                    <div>
+                      <h3 className="font-black text-xl italic tracking-tight">Extracted Outfit Palette</h3>
+                      <p className="text-xs text-slate-500 font-medium">Real-time color & visual tone analysis from your uploaded photo</p>
+                    </div>
+                  </div>
+
+                  {result.imageMetrics && (
+                    <div className="flex flex-wrap gap-3 text-xs font-bold">
+                      <span className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                        Tone: <strong className="text-indigo-600 dark:text-cyan-400">{result.imageMetrics.brightness}</strong>
+                      </span>
+                      <span className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                        Contrast: <strong className="text-indigo-600 dark:text-cyan-400">{result.imageMetrics.contrastScore}/10</strong>
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {result.swatches.map((swatch, idx) => (
+                    <div key={idx} className="flex items-center space-x-4 p-4 rounded-2xl bg-white/70 dark:bg-slate-900/70 border border-slate-200/60 dark:border-slate-800/60 shadow-sm">
+                      <div 
+                        className="w-12 h-12 rounded-2xl shadow-md border-2 border-white dark:border-slate-700 shrink-0" 
+                        style={{ backgroundColor: swatch.hex }} 
+                      />
+                      <div>
+                        <span className="text-sm font-black text-slate-800 dark:text-slate-100 block">{swatch.name}</span>
+                        <span className="text-xs font-mono text-slate-400 font-bold uppercase">{swatch.hex}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* 3 Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
