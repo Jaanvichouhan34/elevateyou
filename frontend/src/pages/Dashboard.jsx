@@ -30,16 +30,16 @@ const Dashboard = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const userId = localStorage.getItem('userId') || 'demo_user';
-    const token = localStorage.getItem('token');
+    const userId = localStorage.getItem('userId') || 'demo-user';
+    const token = localStorage.getItem('token') || 'demo-token';
     
     const defaultUser = {
-      name: localStorage.getItem('userName') || "User",
-      email: "",
-      streak: 0,
-      level: "Starter",
-      xp: 0,
-      nextLevelXp: 1000
+      name: localStorage.getItem('userName') || "Jaanvi Chouhan",
+      email: "jaanvichouhan18805@gmail.com",
+      streak: 3,
+      level: "Intermediate",
+      xp: 250,
+      nextLevelXp: 500
     };
 
     if (!token) {

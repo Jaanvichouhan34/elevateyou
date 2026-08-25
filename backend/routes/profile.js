@@ -25,23 +25,39 @@ router.get('/:userId', auth, async (req, res) => {
       }
     }
 
-    if (!user) {
-      user = { 
-        _id: targetUserId,
-        name: 'Test User', 
-        level: 'Starter', 
-        xp: 250, 
-        nextLevelXp: 1000, 
-        streak: 1 
-      };
-    }
-
     // Add local counts from JSON storage or demo scans
     const localScans = readData('outfit_scans').filter(s => s.userId === targetUserId || s.userId === 'demo-user' || s.userId === 'demo_user').length;
     const localQuizzes = readData('quiz_results').filter(q => q.userId === targetUserId || q.userId === 'demo-user' || q.userId === 'demo_user').length;
 
-    const totalScans = Math.max(scanCount + localScans, localScans > 0 ? localScans : 4);
+    const totalScans = Math.max(scanCount + localScans, localScans > 0 ? localScans : 1);
     const totalQuizzes = Math.max(quizCount + localQuizzes, localQuizzes > 0 ? localQuizzes : 2);
+
+    const calculatedXP = (totalScans * 50) + (totalQuizzes * 100);
+    
+    let calculatedLevel = 'Starter';
+    let nextLevelXp = 500;
+    if (calculatedXP >= 1000) {
+      calculatedLevel = 'Professional';
+      nextLevelXp = 2000;
+    } else if (calculatedXP >= 500) {
+      calculatedLevel = 'Intermediate';
+      nextLevelXp = 1000;
+    }
+
+    if (!user) {
+      user = { 
+        _id: targetUserId,
+        name: 'Jaanvi Chouhan', 
+        level: calculatedLevel, 
+        xp: calculatedXP, 
+        nextLevelXp: nextLevelXp, 
+        streak: 3 
+      };
+    } else {
+      user = user.toObject ? user.toObject() : user;
+      user.xp = Math.max(user.xp || 0, calculatedXP);
+      user.nextLevelXp = nextLevelXp;
+    }
 
     res.status(200).json({ 
       user, 
@@ -53,8 +69,8 @@ router.get('/:userId', auth, async (req, res) => {
   } catch (error) {
     console.error('Profile fetch error:', error);
     res.status(200).json({
-      user: { _id: req.params.userId, name: 'Test User', level: 'Starter', xp: 250, nextLevelXp: 1000, streak: 1 },
-      stats: { scans: 4, quizzes: 2 }
+      user: { _id: req.params.userId, name: 'Jaanvi Chouhan', level: 'Intermediate', xp: 250, nextLevelXp: 500, streak: 3 },
+      stats: { scans: 3, quizzes: 2 }
     });
   }
 });
@@ -75,24 +91,23 @@ router.put('/:userId', auth, async (req, res) => {
       }
     }
 
-    // Fallback response for guest / demo users or when DB record doesn't exist yet
     res.status(200).json({
       _id: targetUserId,
-      name: name || 'Test User',
-      level: level || 'Starter',
+      name: name || 'Jaanvi Chouhan',
+      level: level || 'Intermediate',
       xp: 250,
-      nextLevelXp: 1000,
-      streak: 1
+      nextLevelXp: 500,
+      streak: 3
     });
   } catch (error) {
     console.error('Profile update notice:', error.message);
     res.status(200).json({
       _id: targetUserId,
-      name: name || 'Test User',
-      level: level || 'Starter',
+      name: name || 'Jaanvi Chouhan',
+      level: level || 'Intermediate',
       xp: 250,
-      nextLevelXp: 1000,
-      streak: 1
+      nextLevelXp: 500,
+      streak: 3
     });
   }
 });
