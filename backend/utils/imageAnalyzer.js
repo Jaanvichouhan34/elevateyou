@@ -7,6 +7,13 @@ const COLOR_PALETTE = [
   { name: 'Mustard Gold', hex: '#ca8a04', r: 202, g: 138, b: 4 },
   { name: 'Lemon Chiffon', hex: '#fef08a', r: 254, g: 240, b: 138 },
   { name: 'Amber Ochre', hex: '#d97706', r: 217, g: 119, b: 6 },
+  { name: 'Marigold Gold', hex: '#f59e0b', r: 245, g: 158, b: 11 },
+  { name: 'Champagne Gold', hex: '#fef3c7', r: 254, g: 243, b: 199 },
+
+  // Oranges & Peaches
+  { name: 'Coral Peach', hex: '#fdba74', r: 253, g: 186, b: 116 },
+  { name: 'Tangerine Orange', hex: '#f97316', r: 249, g: 115, b: 22 },
+  { name: 'Rust Terracotta', hex: '#9a3412', r: 154, g: 52, b: 18 },
 
   // Reds & Pinks
   { name: 'Crimson Red', hex: '#dc2626', r: 220, g: 38, b: 38 },
@@ -19,11 +26,13 @@ const COLOR_PALETTE = [
   // Blues & Teals
   { name: 'Navy Blue', hex: '#1e3a8a', r: 30, g: 58, b: 138 },
   { name: 'Royal Blue', hex: '#2563eb', r: 37, g: 99, b: 235 },
+  { name: 'Denim Blue', hex: '#3b82f6', r: 59, g: 130, b: 246 },
   { name: 'Sky Blue', hex: '#38bdf8', r: 56, g: 189, b: 248 },
   { name: 'Deep Teal', hex: '#0f766e', r: 15, g: 118, b: 110 },
   { name: 'Cobalt Blue', hex: '#1d4ed8', r: 29, g: 78, b: 216 },
   { name: 'Cyan Aqua', hex: '#06b6d4', r: 6, g: 182, b: 212 },
   { name: 'Midnight Blue', hex: '#172554', r: 23, g: 37, b: 84 },
+  { name: 'Periwinkle Blue', hex: '#818cf8', r: 129, g: 140, b: 248 },
 
   // Greens
   { name: 'Emerald Green', hex: '#059669', r: 5, g: 150, b: 105 },
@@ -31,25 +40,32 @@ const COLOR_PALETTE = [
   { name: 'Olive Green', hex: '#4d7c0f', r: 77, g: 124, b: 15 },
   { name: 'Forest Green', hex: '#14532d', r: 20, g: 83, b: 45 },
   { name: 'Mint Green', hex: '#6ee7b7', r: 110, g: 231, b: 183 },
+  { name: 'Seafoam Green', hex: '#99f6e4', r: 153, g: 246, b: 228 },
+  { name: 'Neon Lime', hex: '#a3e635', r: 163, g: 230, b: 53 },
 
   // Purples & Violets
   { name: 'Deep Plum / Violet', hex: '#581c87', r: 88, g: 28, b: 135 },
   { name: 'Lavender Purple', hex: '#c084fc', r: 192, g: 132, b: 252 },
   { name: 'Soft Lilac', hex: '#e9d5ff', r: 233, g: 213, b: 255 },
   { name: 'Royal Purple', hex: '#7e22ce', r: 126, g: 34, b: 206 },
+  { name: 'Mauve Violet', hex: '#c084fc', r: 192, g: 132, b: 252 },
+  { name: 'Electric Purple', hex: '#9333ea', r: 147, g: 51, b: 234 },
 
   // Neutrals, Browns & Tans
   { name: 'Jet Black', hex: '#0f172a', r: 15, g: 23, b: 42 },
   { name: 'Charcoal Grey', hex: '#334155', r: 51, g: 65, b: 85 },
   { name: 'Slate Grey', hex: '#64748b', r: 100, g: 116, b: 139 },
   { name: 'Cool Light Grey', hex: '#cbd5e1', r: 203, g: 213, b: 225 },
+  { name: 'Gunmetal Grey', hex: '#1e293b', r: 30, g: 41, b: 59 },
   { name: 'Crisp White', hex: '#f8fafc', r: 248, g: 250, b: 252 },
   { name: 'Warm Cream / Ivory', hex: '#fef3c7', r: 254, g: 243, b: 199 },
   { name: 'Camel Tan', hex: '#d97706', r: 217, g: 119, b: 6 },
   { name: 'Khaki Beige', hex: '#d6d3d1', r: 214, g: 211, b: 209 },
-  { name: 'Rust Terracotta', hex: '#9a3412', r: 154, g: 52, b: 18 },
+  { name: 'Taupe Neutral', hex: '#a8a29e', r: 168, g: 162, b: 158 },
+  { name: 'Sand Beige', hex: '#e7e5e4', r: 231, g: 229, b: 228 },
   { name: 'Earth Brown', hex: '#78350f', r: 120, g: 53, b: 15 },
-  { name: 'Chocolate Espresso', hex: '#451a03', r: 69, g: 26, b: 3 }
+  { name: 'Chocolate Espresso', hex: '#451a03', r: 69, g: 26, b: 3 },
+  { name: 'Copper Metallic', hex: '#b45309', r: 180, g: 83, b: 9 }
 ];
 
 function isSkinTone(r, g, b) {

@@ -35,7 +35,7 @@
 
 ### 📸 AI Outfit Scanner & Style Intelligence
 - **Live Camera Capture with Countdown Timer** — Snap full-body outfit photos with built-in 3s, 5s, and 10s step-back timers
-- **Pixel-Level Color Palette Extraction** — Real RGBA JPEG/PNG color sampling (`jpeg-js`, `pngjs`) with human skin-tone filtering
+- **Pixel-Level Color Palette Extraction** — Real RGBA JPEG/PNG color sampling (`jpeg-js`, `pngjs`) with human skin-tone filtering across 52+ fashion colors
 - **Garment Silhouette & Leg Exposure Detector** — Auto-detects casual shorts, loungewear, or formal suits and enforces realistic event formality rules
 - **Dynamic Formality Scoring (3.5 – 9.5)** — Real-time event-specific ratings, hex swatches, tone badges, and tailored AI feedback
 - **Text Mode** — Describe your outfit for instant AI fashion critique
